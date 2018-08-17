@@ -1,0 +1,128 @@
+echo "https://www.piaotian.com/html/7/7430/index.html" | sed 's/\/[^/]+/d/'
+echo "https://www.piaotian.com/html/7/7430/index.html" | sed 's/\(.*\)\/.*/\1/'
+./novel-reader https://www.piaotian.com/html/7/7430/index.html
+./novel-reader https://www.piaotian.com/html/7/7430/index.html
+./novel-reader https://www.piaotian.com/html/7/7430/index.html
+./novel-reader https://www.piaotian.com/html/7/7430/index.html
+./novel-viewer https://www.piaotian.com/html/7/7430/index.html
+./novel-reader https://www.piaotian.com/html/7/7430/index.html 6634570.html
+e
+mpv --no-terminal  --autofit=100%x100% https://www.youtube.com/watch?v=bhnMtEHHYiY &
+e
+cd .emacs.d
+ls
+cd ../
+ll
+ll | grep elfeed
+cd .emacs.d
+ll | grep elfeed
+cd elpa
+ll
+cd elfeed-20180713.1229/
+ll
+e
+e
+cd ../Downloads/
+mv TMR-Issue13.pdf documents\ intéressants/Algorithms/
+e
+xetex sort
+xetex sort
+xetex sort
+cd scripts/
+ll
+l
+cat novel-reader
+./novel-reader https://www.piaotian.com/html/8/8444/index.html 6635375.html
+clear
+./novel-reader https://www.piaotian.com/html/8/8444/index.html 6635375.html | sed 's/[:space:]//'
+./novel-reader https://www.piaotian.com/html/8/8444/index.html 6635375.html | sed 's/[[:space:]]//'
+echo "heillo" | replace-regexp 'ill' 'h'
+echo "heillo" | replace-regexp "ill" "h"
+echo "heillo" | replace-regexp "ill"
+./novel-reader https://www.piaotian.com/html/8/8444/index.html 6635375.html > lingtsen.html
+ll
+open -a "text edit" lingtsen.html 
+open -a "textedit" lingtsen.html 
+cat lingtsen.html | tr '[:blank:]' -d
+cat lingtsen.html
+cat lingtsen.html | tr ' ' -d
+rm lingtsen.html 
+ll
+clear
+curl -s https://www.piaotian.com/html/8/8444/6635375.html | pup 'body text{}'
+curl -s https://www.piaotian.com/html/8/8444/6635375.html | pup 'body text{}'
+wget https://www.piaotian.com/html/8/8444/6635375.html -O lin.html
+cat lin.html 
+cat lin.html | pup "body"
+e
+./novel-viewer https://www.piaotian.com/html/8/8444/index.html 
+./novel-viewer https://www.piaotian.com/html/8/8444/index.html 
+./novel-viewer https://www.piaotian.com/html/8/8444/index.html 
+./novel-viewer https://www.piaotian.com/html/8/8444/index.html 1
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+xetex sort
+mpv --no-terminal  --autofit=100%x100% https://www.youtube.com/watch?v=9BZwl7R2dzk &
+e
+mpv --no-terminal  --autofit=100%x100% https://www.youtube.com/watch?v=iB81JZY_eTE &
+e
+mpv --no-terminal  --autofit=100%x100% https://www.youtube.com/watch?v=h-jiw3kY-sI &
+e
+cd ../Desktop/Centre/Musique/Chansons/Blama/
+l
+l
+ll
+mpv --no-terminal buddha\ song.mp3 
+mpv --no-terminal buddha\ song.mp3 &
+mpv --no-terminal Om\ Ah\ Hum\ Vajra\ Guru\ Pema\ Siddhi\ Hum.m4a &
+mpv --no-terminal https://www.youtube.com/watch?v=kxFvpJPetaw &
+mpv --no-terminal --auto-fit 100%x100% https://www.youtube.com/watch?v=kxFvpJPetaw &
+mpv --no-terminal --auto-fit=100%x100% https://www.youtube.com/watch?v=kxFvpJPetaw &
+killall mpv
+fg
+mpv --no-terminal --autofit=100%x100% https://www.youtube.com/watch?v=kxFvpJPetaw &
+e
+scripts
+chmod +x novel-title 
+e
+ll
+ls -la
+e

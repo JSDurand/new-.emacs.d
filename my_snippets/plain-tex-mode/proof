@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: proof
+# key: pf
+# --
+\proof
+${1:The proof is as follows.}
+\endproof
+$0

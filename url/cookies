@@ -1,0 +1,28 @@
+;; Emacs-W3 HTTP cookies file
+;; Automatically generated file!!! DO NOT EDIT!!!
+
+(setq url-cookie-storage
+ '((".youtube.com"
+  [url-cookie "PREF" "f1=50000000" "Wed, 20-Feb-2019 23:59:30 GMT" "/" ".youtube.com" nil]
+  [url-cookie "VISITOR_INFO1_LIVE" "-7kxm23UqO4" "Wed, 19-Dec-2018 12:06:30 GMT" "/" ".youtube.com" nil])
+ ("www.biquge.com.tw"
+  [url-cookie "__cdnuid" "60038a585d4b94666d31a16d0896ecec" "Ven jul 19 10:47:10 2019 GMT" "/" "www.biquge.com.tw" nil])
+ (".github.com"
+  [url-cookie "_octo" "GH1.1.1411723730.1531238202" "Fri, 10 Jul 2020 15:56:42 -0000" "/" ".github.com" nil])
+ (".stackoverflow.com"
+  [url-cookie "prov" "58ad41c3-e45e-0341-399c-5c54d825d1f8" "Fri, 01-Jan-2055 00:00:00 GMT" "/" ".stackoverflow.com" nil])
+ (".google.com"
+  [url-cookie "CGIC" "IgMqLyo" "Wed, 26-Dec-2018 20:07:31 GMT" "/search" ".google.com" nil]
+  [url-cookie "CGIC" "IgMqLyo" "Wed, 26-Dec-2018 20:07:31 GMT" "/complete/search" ".google.com" nil]
+  [url-cookie "NID" "133=tyWp9G28kYMBxyn5OYbPUn4nmBdjg_ObxvgthXoctKDy9t8G2GzEai1cLRS3QgJO_wlUIOsqFm3XqYGxAG8AWvG6OmcqPJFZ9tz8gkuFejRHLX5Rjbc7PQ4wW7IOai4Q" "Thu, 27-Dec-2018 05:12:55 GMT" "/" ".google.com" nil]
+  [url-cookie "1P_JAR" "2018-08-12-12" "Tue, 11-Sep-2018 12:47:39 GMT" "/" ".google.com" nil]))
+)
+(setq url-cookie-secure-storage
+ '((".github.com"
+  [url-cookie "logged_in" "no" "Sat, 10 Jul 2038 15:56:42 -0000" "/" ".github.com" t]))
+)
+
+;; Local Variables:
+;; version-control: never
+;; no-byte-compile: t
+;; End:

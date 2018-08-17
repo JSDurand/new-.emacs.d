@@ -1,0 +1,5 @@
+* Emacs setup file
+  Well, this is simply the configuration file of some emacs noob.
+  I am just starting to learn some LISP, either emacs lisp, clojure, or common lisp,
+  and the contents of this repository are solely for the purpose of storing my
+  configurations so that I might be able to re-use them when I need to.

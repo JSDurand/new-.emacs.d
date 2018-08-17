@@ -1,0 +1,5 @@
+#!/usr/local/bin/bash
+
+# echo the title
+
+echo $(curl -s $1 | pup "h1 text{}" )

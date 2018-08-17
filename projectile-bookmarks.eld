@@ -1,0 +1,1 @@
+("~/.emacs.d/" "~/Desktop/Centre/Mes notes/Les papiers/NCTS thèse/Report/" "~/org/account/" "~/")

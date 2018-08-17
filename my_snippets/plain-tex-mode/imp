@@ -1,0 +1,13 @@
+# -*- mode: snippet -*-
+# name: imp
+# key: t<i
+# --
+
+\imp ${1:Title}
+${2:content}
+
+\proof
+${1:$(format "%%The proof of the %s is as follows." (downcase yas-text))}
+$4
+\endproof
+$0

@@ -1,0 +1,6 @@
+#!/usr/local/bin/bash
+
+# Fetch the content and then pipe it to pup "li a attr{href}" | tail -n 1
+# count the crucial information.
+
+echo $(curl -s $1 | pup "li a attr{href}" | tail -n $2)

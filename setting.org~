@@ -1,0 +1,952 @@
+#+TITLE: Durand's Emacs Settings
+#+AUTHOR: Durand
+#+OPTIONS: toc:nil num:nil
+#+STARTUP: noindent 
+#+STARTUP: content
+* Taken from internet 
+
+#+BEGIN_SRC emacs-lisp
+  (setq delete-old-versions -1 )		; delete excess backup versions silently
+  (setq version-control t )		; use version control
+  (setq vc-make-backup-files t )		; make backups file even when in version controlled dir
+  (setq backup-directory-alist `(("." . "~/.emacs.d/backups")) ) ; which directory to put backups file
+  (setq vc-follow-symlinks t )				       ; don't ask for confirmation when opening symlinked file
+  (setq auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save-list/" t)) ) ;transform backups file name
+  (setq inhibit-startup-screen t )	; inhibit useless and old-school startup screen
+  (setq ring-bell-function 'ignore )	; silent bell when you make a mistake
+  ;; (setq coding-system-for-read 'utf-8 )	; use utf-8 by default
+  ;; UTF-8 as default encoding
+  (set-language-environment "UTF-8")
+  (setq coding-system-for-write 'utf-8 )
+  (setq sentence-end-double-space nil)	; sentence SHOULD end with only a point.
+  (setq default-fill-column 80)		; toggle wrapping text at the 80th character
+  (setq initial-scratch-message "Bonjour!") ; print a default message in the empty scratch buffer opened at startup
+
+  (setq-default display-line-numbers nil)
+  (setq-default display-line-numbers-current-absolute t)
+  (global-set-key (vector ?\s-x) (lambda ()
+				   (interactive)
+				   (setq display-line-numbers
+					 (and (not display-line-numbers)
+					      'relative))))
+  (set-face-attribute 'line-number nil :foreground "light blue")
+  (set-face-attribute 'line-number-current-line nil :foreground "gold")
+  (tool-bar-mode -1)
+  (scroll-bar-mode -1)
+  (menu-bar-mode -1)
+  (setq mac-option-key-is-meta t)
+  (setq mac-right-option-modifier nil)
+  (setq ns-function-modifier 'hyper)
+  (add-to-list 'custom-theme-load-path "~/.emacs.d/themes/")
+  (global-set-key "\M-'" 'insert-quotations)
+  (global-set-key "\M-\"" 'insert-quotes)
+  ;; (global-set-key (kbd "C-'") 'insert-backquote)
+
+  ;;;###autoload
+  (defun insert-quotations (&optional arg)
+    "Enclose following ARG sexps in quotation marks.
+  Leave point after open-paren."
+    (interactive "*P")
+    (insert-pair arg ?\' ?\'))
+
+  ;;;###autoload
+  (defun insert-quotes (&optional arg)
+    "Enclose following ARG sexps in quotes.
+  Leave point after open-quote."
+    (interactive "*P")
+    (insert-pair arg ?\" ?\"))
+
+  ;;;###autoload
+  (defun insert-backquote (&optional arg)
+    "Enclose following ARG sexps in quotations with backquote.
+  Leave point after open-quotation."
+    (interactive "*P")
+    (insert-pair arg ?\` ?\'))
+#+END_SRC
+* From Magnar Sveen
+  #+BEGIN_SRC emacs-lisp
+    ;; Move more quickly
+    (global-set-key (kbd "C-S-n")
+		    (lambda ()
+		      (interactive)
+		      (ignore-errors (next-line 5))))
+
+    (global-set-key (kbd "C-S-p")
+		    (lambda ()
+		      (interactive)
+		      (ignore-errors (previous-line 5))))
+
+    (global-set-key (kbd "C-S-f")
+		    (lambda ()
+		      (interactive)
+		      (ignore-errors (forward-char 5))))
+
+    (global-set-key (kbd "C-S-b")
+		    (lambda ()
+		      (interactive)
+		      (ignore-errors (backward-char 5))))
+  #+END_SRC
+* Custom settings
+
+** Copy-line function and indent-region-or-buffer
+
+ #+BEGIN_SRC emacs-lisp
+   ;;;###autoload
+   (defun copy-line (arg)
+     "Copy line accoring to ARG"
+     (interactive "p")
+     (let ((beg (line-beginning-position))
+	   (end (line-end-position arg)))
+       (kill-ring-save beg end nil)
+       (kill-append "\n" nil)))
+
+
+   (global-set-key [?\M-k] 'copy-line)
+
+   ;;;###autoload
+   (defun indent-buffer ()
+     "Indent the currently visited buffer."
+     (interactive)
+     (indent-region (point-min) (point-max)))
+
+   ;;;###autoload
+   (defun indent-region-or-buffer ()
+     "Indent a region if selected, otherwise the whole buffer."
+     (interactive)
+     (save-excursion
+       (if (region-active-p)
+	   (progn
+	     (indent-region (region-beginning) (region-end))
+	     (message "Indented selected region."))
+	 (progn
+	   (indent-buffer)
+	   (message "Indented buffer.")))))
+   (global-set-key [?\C-c ?/] 'indent-region-or-buffer)
+ #+END_SRC
+
+** kill-line function
+
+ #+BEGIN_SRC emacs-lisp
+   ;;;###autoload
+   (defun backward-kill-line (arg)
+     "Kill ARG lines backward"
+     (interactive "p")
+     (kill-line (- 1 arg)))
+   (global-set-key [?\\] 'self-insert-command)
+   (global-set-key [s-backspace] 'backward-kill-line)
+   (global-set-key [?\C--] 'undo)
+   (global-set-key [f12] 'undo)
+
+#+END_SRC
+
+** change font
+
+#+BEGIN_SRC emacs-lisp
+  ;;;(set-face-attribute 'default (selected-frame) :height 120)
+  ;;;(set-face-attribute 'mode-line nil :height 200)
+  (set-default-font "Menlo 20")
+  (defun my-minibuffer-setup ()
+    (set (make-local-variable 'face-remapping-alist)
+	 '((default :height 1.1)))
+    (with-current-buffer (get-buffer " *Echo Area 0*")
+      (setq-local face-remapping-alist '((default (:height 1.2) variable-pitch))))
+
+    (with-current-buffer (get-buffer " *Echo Area 1*")
+      (setq-local face-remapping-alist '((default (:height 1.2) variable-pitch)))))
+
+  (add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
+
+#+END_SRC
+
+** only window
+
+#+BEGIN_SRC emacs-lisp
+  (global-set-key [?\s-w] 'delete-other-windows)
+
+  ;; (defun scroll-half-page-down ()
+  ;;   "scroll down half the page"
+  ;;   (interactive)
+  ;;   (scroll-down (/ (window-body-height) 2)))
+
+  ;; (defun scroll-half-page-up ()
+  ;;   "scroll up half the page"
+  ;;   (interactive)
+  ;;   (scroll-up (/ (window-body-height) 2)))
+#+END_SRC
+
+** org settings
+
+#+BEGIN_SRC emacs-lisp
+  (use-package org
+    :ensure t
+    :defer t
+    :config
+    (setq org-todo-keywords '((sequence "TODO" "START" "WORKING" "HARD-WORKING" "ALMOST" "|" "DONE")
+			      (sequence "TO-THINK" "PENDING" "HARD" "IMPOSSIBLE" "|" "SOLVED")))
+    (global-set-key "\C-cl" 'org-store-link)
+    (global-set-key "\C-cc" 'org-capture)
+    (global-set-key "\C-ca" 'org-agenda)
+    (add-hook 'org-mode-hook '(lambda ()
+				(define-key org-mode-map [?\ù] 'org-advance)
+				(define-key org-mode-map [?\ç] 'org-retreat)))
+    (define-key org-mode-map [f8] 'org-account-prefix-map)
+    (advice-add 'org-edit-special :after '(lambda (orig-fun) (delete-other-windows)))
+    (set-face-attribute 'org-block nil :background "gray5" :foreground "DarkOrange1"))
+
+  (setq org-capture-templates
+	'(("m" "Template for MaoBaoBao Notes" entry
+	   (file+headline "~/org/notes.org" "MaoBaoBao Notes")
+	   "* day %T\n  %?")
+	  ("n" "record quick diaries" entry
+	   (file+headline "~/org/notes.org" "Diaries")
+	   "* day %T\n  %?")
+	  ("l" "Store links" entry
+	   (file+headline "~/org/notes.org" "Links")
+	   "* %? %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
+	  ("b" "Blog posts" entry
+	   (file+headline "~/org/notes.org" "Blog posts")
+	   "* %? %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%i\n")))
+
+  (define-prefix-command 'org-account-prefix-map)
+  (define-key org-account-prefix-map [?n] 'org-new-account)
+  (define-key org-account-prefix-map [?u] 'org-update-account)
+  (define-key org-account-prefix-map [?c] 'org-calc-account)
+  (define-key org-account-prefix-map [?r] 'org-run-src-block)
+  (define-key org-account-prefix-map [?i] 'org-set-item-price-note)
+
+  (defmacro with-account (account-func)
+    "Execute ACCOUNT-FUNC only when we are viisting an account file."
+    (interactive)
+    `(cond
+      ((string-prefix-p "account" (buffer-name)) ,account-func)
+      (t (user-error "%s is not an account file" (buffer-name)))))
+
+  ;;;###autoload
+  (defun org-advance (x)
+    (interactive "P")
+    (when (buffer-narrowed-p)
+      (beginning-of-buffer)
+      (widen)
+      (if (not x)
+	  (org-next-visible-heading 1)
+	(org-forward-heading-same-level 1)))
+    (org-narrow-to-subtree))
+
+  ;;;###autoload
+  (defun org-retreat (x)
+    (interactive "P")
+    (when (buffer-narrowed-p)
+      (beginning-of-buffer)
+      (widen)
+      (if (not x)
+	  (org-previous-visible-heading 1)
+	(org-backward-heading-same-level 1)))
+    (org-narrow-to-subtree))
+
+  ;;;###autoload
+  (defun org-get-account-num ()
+    "count how many days have been tagged 'account'"
+    (interactive)
+    (length (org-map-entries t "account")))
+
+  ;;;###autoload
+  (defun org-get-account-total ()
+    "get the total value of the accuont values"
+    (interactive)
+    (apply '+ (mapcar 'string-to-number
+		      (org-map-entries (lambda ()
+					 (org-entry-get nil "TOTAL")) "account"))))
+  ;;;###autoload
+  (defun org-calc-account ()
+    "sum up my accounts entries, one can limit the entries to sum by the tag 'account'"
+    (interactive)
+    (with-account
+     (let* ((days (org-get-account-num))
+	    (total (org-get-account-total))
+	    (ave (/ total days)))
+       (message (concat
+		 (number-to-string days)
+		 " days, spent "
+		 (number-to-string total)
+		 " with average "
+		 (number-to-string ave))))))
+
+  ;;;###autoload
+  (defun org-find-all-days ()
+    "Get all days information in TODO items
+
+  The entry is supposed to contain a timestamp of the form
+  \"<2018-08-05 Dim>\""
+    (interactive)
+    (org-map-entries (lambda ()
+		       (re-search-forward "<" nil t)
+		       (cons (buffer-substring-no-properties
+			      (point)
+			      (progn (re-search-forward " " nil t) (1- (point))))
+			     (progn (beginning-of-line) (point))))
+		     "+TODO=\"DONE\""))
+
+  ;;;###autoload
+  (defun org-find-last-day ()
+    "Find the start position of last day entry"
+    (interactive)
+    (cdar (last (org-find-all-days))))
+
+  ;;;###autoload
+  (defun org-find-pos-of-day (day)
+    "Get the start position a specified day entry"
+    (interactive)
+    (let* ((all-days (org-find-all-days))
+	   (day-pos (cdr (assoc day all-days))))
+      day-pos))
+
+  ;;;###autoload
+  (defun org-new-account ()
+    "Make a new account entry"
+    (interactive)
+    (with-account (progn
+		    (org-shifttab 2) ; show an overview, so that going to the last entry is possible
+		    (goto-char (org-find-last-day))
+		    (org-copy-subtree)
+		    (org-paste-subtree)
+		    (goto-char (org-find-last-day))
+		    (dotimes (i 3)
+		      (re-search-forward "<" nil t)
+		      (org-shiftright))
+		    (org-cycle '(1))
+		    (re-search-forward "total" nil t 1)
+		    (next-line 2)
+		    (org-table-next-field)
+		    (org-table-blank-field)
+		    (org-table-next-field)
+		    (org-table-blank-field))))
+
+  ;;;###autoload
+  (defun org-update-account ()
+    "Update the last account entry"
+    (interactive)
+    (with-account (progn
+		    (outline-show-all)
+		    (goto-char (org-find-last-day))
+		    (re-search-forward "TBLFM" nil t 2)
+		    (org-table-calc-current-TBLFM)
+		    (re-search-backward "TBLFM" nil t 2)
+		    (org-table-calc-current-TBLFM)
+		    (previous-line)
+		    (let ((val (org-no-properties (org-table-get 1 2))))
+		      (goto-char (org-find-last-day))
+		      (org-set-property "total" val))
+		    (outline-hide-body))))
+
+  ;;;###autoload
+  (defun org-set-account-according-to-date (date &optional month year)
+    "Update accounts tag according to DATE.
+  DATE is an integer representing a date in month MONTH and year YEAR.
+  MONTH and YEAR default to the current ones.
+  This means if a date has the same quotient as DATE when
+  divided by 7, then it will be tagged `account';
+  otherwise it will have no tags."
+    (with-account
+     (progn
+       (outline-show-all)
+       (let ((all-days (length (org-find-all-days))))
+	 (dotimes (running-day all-days)
+	   (let ((day (1+ running-day)))
+	     (goto-char (org-find-pos-of-day (org-day-format-transform day month year)))
+	     (org-set-tags-to (cond ((and
+				      (<= day date)
+				      (= (/ running-day 7) (/ (1- date) 7))) ":account:")
+				    (t nil))))))))
+    (outline-hide-body))
+
+  ;;;###autoload
+  (defun org-day-format-transform (day month year)
+    "Take an integer DAY and transform it to a string.
+  For example,
+  (org-day-format-transform 1)
+  when executed in August 2018 becomes
+  => \"2018-08-01\""
+    (let* ((day-string (pad-string-to (format "%d" day) 2))
+	   (padded-date-string-list (mapcar (lambda (x) (pad-string-to (format "%d" x) 2))
+					    (calendar-current-date)))
+	   (month (or (and month (pad-string-to (format "%d" month) 2))
+		      (car padded-date-string-list)))
+	   (year (or (and year (pad-string-to (format "%d" year) 2))
+		     (caddr padded-date-string-list))))
+      (concat year
+	      "-"
+	      month
+	      "-"
+	      day-string)))
+
+  ;;;###autoload
+  (defun pad-string-to (str num)
+    "Pad a string STR to be of length greater than or equal to NUM with 0"
+    (cond ((< (length str) num)
+	   (concat (make-string (- num (length str)) ?0) str))
+	  (t
+	   str)))
+
+  ;;;###autoload
+  (defun org-run-src-block ()
+    "Search for a src block and run it"
+    (interactive)
+    (with-account
+     (save-excursion
+       (re-search-forward "BEGIN_SRC")
+       (org-babel-execute-src-block))))
+
+  ;;;###autoload
+  (defun org-set-item-price-note (item-name item-price item-note)
+    (interactive (let ((item (ivy-read "Enter item: "
+				       '("breakfast" "brunch" "brunverage"
+					 "lunch" "dinner" "beverage")
+				       :caller 'org-set-item-price-note
+				       :update-fn #'tex-follow-up))
+		       (price (read-number "Enter price: " 0))
+		       (note (read-string "Enter note: " nil nil "todo")))
+		   (list item price note)))
+    (end-of-buffer)
+    (outline-show-all)
+    (re-search-backward "tblfm")
+    (previous-line)
+    (org-table-insert-row 1)
+    (org-table-insert-hline)
+    (org-table-put (org-table-current-line) (org-table-current-column) item-name)
+    (org-table-put (org-table-current-line) (1+ (org-table-current-column)) (number-to-string item-price))
+    (org-table-put (org-table-current-line) (+ 2 (org-table-current-column)) item-note t)
+    (outline-hide-body))
+
+  (defun org-delete-item-price-note (row-num &optional total-num)
+    (interactive (let* ((total-num (save-excursion
+				     (end-of-buffer)
+				     (outline-show-all)
+				     (re-search-backward "tblfm")
+				     (previous-line 2)
+				     (org-table-current-line)))
+			(num (ivy-read "Enter row number: "
+				       (mapcar #'number-to-string (number-sequence 1 total-num))
+				       :caller 'org-delete-item-price-note)))
+		   (list (string-to-number num) total-num)))
+    (end-of-buffer)
+    (outline-show-all)
+    (re-search-backward "tblfm")
+    (previous-line 2)
+    (org-table-goto-line row-num)
+    (kill-whole-line 2)
+    (outline-hide-body))
+
+  ;; just in case I need this
+  ;; (defun org-retrieve-value ()
+  ;;   "retrieve value from property drawer"
+  ;;   (org-element-map (org-element-parse-buffer) 'property-drawer (lambda (hl)
+  ;; 								 (nth 3 (nth 1 (assoc 'node-property hl))))))
+#+END_SRC
+
+** custom configs
+
+#+BEGIN_SRC emacs-lisp
+  (load-file (expand-file-name "custom.el" user-emacs-directory)
+#+END_SRC
+
+** load default theme
+   #+BEGIN_SRC emacs-lisp
+     ;; (load-theme 'leuven)
+     ;; (load-theme 'nimbus t)
+     (load-theme 'nimbus-tex-im t)
+     ;; (load-theme 'default-black)
+     ;; (load-theme 'my_theme t)
+   #+END_SRC
+
+** iy-go-to-char
+
+#+BEGIN_SRC emacs-lisp
+  (use-package iy-go-to-char
+    :ensure t
+    :defer 10
+    :config
+    (global-set-key "\M-m" 'iy-go-to-char)
+    (global-set-key "\M-p" 'iy-go-to-char-backward))
+#+END_SRC
+
+** expand-region
+
+   #+BEGIN_SRC emacs-lisp
+     (use-package expand-region
+       :ensure t
+       :bind ([67108900] . 'er/expand-region) ; (kbd "C-$")
+       :defer t
+       :config
+       ;; (global-set-key (kbd "C-$") 'er/expand-region)
+       (pending-delete-mode t))
+   #+END_SRC
+
+** company mode
+
+#+BEGIN_SRC emacs-lisp
+  (use-package company
+    :ensure t
+    :defer 10
+    :config
+    (global-company-mode 1)
+    (global-set-key (kbd "C-x <") 'company-complete)
+    (setq company-require-match nil)
+    (setq company-tooltip-align-annotations t)
+    (company-flx-mode +1))
+#+END_SRC
+
+** tex commands
+   I might consider constructing the A.S.T. of a mathematical equation, and manipulate it later.
+   I think this is not much harder than an expression calculator implementation I have done in Haskell before.
+   
+   I am not sure if this is a good idea now: This seems pretty useless honestly.
+   The aid to typing mathematics is quite different from the structural editing in programming,
+   and needs a totally different mechanism I suppose.
+
+#+BEGIN_SRC emacs-lisp
+  (org-babel-load-file "/Users/durand/.emacs.d/my_packages/tex.org")
+#+END_SRC
+
+** wrap region
+#+BEGIN_SRC emacs-lisp
+  (use-package wrap-region
+    :ensure t
+    :defer 10
+    :config
+    (wrap-region-global-mode t)
+    (wrap-region-add-wrapper "$" "$")
+    (wrap-region-add-wrapper "=" "=")
+    (wrap-region-add-wrapper "-" "-"))
+#+END_SRC
+
+** paredit cope with characters
+   Just replaced by lispy-mode.
+#+BEGIN_SRC emacs-lisp
+  ;; (global-set-key (kbd "C-c )") 'paredit-forward-barf-sexp)
+  ;; (global-set-key (kbd "C-c (") 'paredit-backward-barf-sexp)
+  ;; (global-set-key [?\C-\(] 'paredit-mode)
+#+END_SRC
+
+** YASnippet
+
+#+BEGIN_SRC emacs-lisp
+  (use-package yasnippet
+    :ensure t
+    :defer 10
+    :config
+    (define-key yas-minor-mode-map (kbd "C-c y") #'yas-expand)
+    (setq yas-snippet-dirs '("~/.emacs.d/my_snippets"))
+    (yas-global-mode t))
+#+END_SRC
+
+** multiple-cursors
+   #+BEGIN_SRC emacs-lisp
+     ;; (use-package multiple-cursors :ensure t
+     ;;   :config
+     ;;   (global-set-key (kbd "C-<") 'mc/mark-next-like-this)
+     ;;   (global-set-key (kbd "M-<") 'mc/mark-previous-like-this)
+     ;;   (global-set-key (kbd "C-c M-<") 'mc/mark-all-like-this)
+     ;;   (global-set-key (kbd "C-S-c C-S-c") 'mc/edit-lines))
+   #+END_SRC
+
+** My Keyboard Macros
+   #+BEGIN_SRC emacs-lisp
+     ;; (fset 'ud
+     ;;       [?\C-c ?g ?\C-r ?t ?b ?l ?f ?m return ?\C-c ?\C-c ?\C-r ?t ?b ?l ?f ?m return ?\C-c ?\C-c ?\C-r ?s ?u ?m return tab ?\C-$ ?\M-w ?\C-c ?\C-p ?\C-c ?\C-x ?P ?t ?o ?t ?a ?l ?: ?  ?\C-y ?\C-\M-j])
+     ;; (fset 'na
+     ;;       [?\C-c ?h ?\M-: ?\( ?o ?r ?g ?- ?e ?n ?d ?- ?o ?f ?- ?s ?u ?b ?t ?r ?e ?e ?\) return ?\C-a ?\M-x ?o ?r ?g ?c ?o ?p ?y ?s ?u ?b return ?\M-x ?o ?r ?g ?p ?a ?s ?t ?e ?r ?s backspace backspace ?s down return ?\C-c ?\C-n S-tab S-tab S-tab ?\C-l ?\C-l ?\C-s ?n ?a ?m ?e return ?\C-n ?\C-n ?\C-n ?\C-n ?\C-n tab tab ?0 tab ?t ?o ?d ?o tab])
+   #+END_SRC
+
+** ivy-swiper-counsel
+   #+BEGIN_SRC emacs-lisp
+     (use-package counsel
+       :ensure t
+       :defer 1
+       :config
+       (ivy-mode 1)
+       (counsel-mode 1)
+       (setq ivy-use-virtual-buffers nil)
+       (global-set-key [?\s-s] 'counsel-grep-or-swiper)
+       (global-set-key [?\C-s] 'counsel-grep-or-swiper)
+       (setq ivy-count-format "(%d/%d) ")
+       (global-set-key [?\s-f] 'counsel-find-file)
+       (global-set-key [?\M-x] 'counsel-M-x)
+       (setq ivy-use-selectable-prompt t))
+
+     (use-package ivy
+       :ensure t
+       :defer 1
+       :config
+       (setq ivy-re-builders-alist
+	     '((swiper . ivy--regex-ignore-order)
+	       (t . ivy--regex-fuzzy)))
+       (ivy-set-actions
+	'ivy-switch-buffer
+	'(("k"
+	   (lambda (x)
+	     (kill-buffer-if-possible x)
+	     (ivy--reset-state ivy-last))
+	   "kill"))))
+
+     ;; I ended up writing my own version using `ivy-read'...
+     ;; (use-package headlong
+     ;;   :ensure t
+     ;;   :defer 1)
+
+     ;;;###autoload
+     (defun kill-buffer-if-possible (buf)
+       "remove the buffer from the recentf list"
+       (interactive)
+       (when (get-buffer buf)
+	 (kill-buffer buf)))
+   #+END_SRC
+
+** ivy-hydra
+   #+BEGIN_SRC emacs-lisp
+     (use-package ivy-hydra :ensure t)
+   #+END_SRC
+
+** avy
+   #+BEGIN_SRC emacs-lisp
+     (use-package avy
+       :ensure t
+       :bind (("M-s" . avy-goto-char))
+       :config
+       (setq avy-keys (nconc
+		       (number-sequence ?a ?z)
+		       (number-sequence ?A ?Z))))
+   #+END_SRC
+** mode line customizations
+   #+BEGIN_SRC emacs-lisp
+     (column-number-mode 1)
+     (set-face-attribute 'mode-line-buffer-id nil :background "gray10" :foreground "DarkOrange1")
+     (set-face-attribute 'mode-line-highlight nil :box nil :background "deep sky blue")
+     (set-face-attribute 'mode-line-inactive  nil :background "gray10" :foreground "gray50")
+
+     ;; (setq mode-line-position
+     ;; 	   '(;; %p print percent of buffer above top of window, or Top, Bot or All
+     ;; 	     ;; (-3 "%p")
+     ;; 	     " "
+     ;; 	     ;; %I print the size of the buffer, with kmG etc
+     ;; 	     ;; (size-indication-mode ("/" (-4 "%I")))
+     ;; 	     ;; " "
+     ;; 	     ;; %l print the current line number
+     ;; 	     ;; %c print the current column
+     ;; 	     (line-number-mode ("%l" (column-number-mode ":%c")))))
+
+     (defun my-position ()
+       "My function of mode-line-position"
+       (if (string= major-mode "pdf-view-mode")
+	   mode-line-position
+	 ""))
+
+     (setq-default mode-line-buffer-identification
+		   (propertized-buffer-identification " %b "))
+
+     (defun my-mode-line-modified ()
+       (propertize
+	(concat
+	 (if (buffer-modified-p)
+	     "M "
+	   " ")
+	 (if (string-prefix-p "*" (buffer-name))
+	     "N "
+	   " ")
+	 (if buffer-read-only
+	     "R "
+	   " "))
+	'help-echo "M: modified 
+     N: probably not a file
+     R: read-only"))
+
+     (defvar durand-custom-modeline ""
+       "A custom variable to set for customisation")
+
+     (setq-default mode-line-format
+		   '("%e"
+		     mode-line-front-space
+		     ;; mode-line-mule-info -- I'm always on utf-8
+		     mode-line-client
+		     (:eval (my-mode-line-modified))
+		     ;; mode-line-remote -- no need to indicate this specially
+		     ;; mode-line-frame-identification -- this is for text-mode emacs only
+		     (:eval (propertize durand-custom-modeline 'face 'durand-custom-mode-face))
+		     " "
+		     mode-line-buffer-identification
+		     " "
+		     ;; mode-line-position
+		     (:eval (my-position))
+		     ;;(vc-mode vc-mode)  -- I use magit
+		     ;; (flycheck-mode flycheck-mode-line) -- I don't have this
+		     " %[ %m %] "
+		     ;; Only major mode
+		     mode-line-misc-info
+		     mode-line-end-spaces
+		     ;; mode-line-modes -- I don't want all those minor modes information
+		     ;; " %I "
+		     " %n "))
+     (set-face-attribute 'mode-line nil
+			 :background "gray10" :foreground "white" :height 1.3)
+
+     (defface durand-custom-mode-face '((t (:foreground "red" :inherit mode-line)))
+       "Face used for displaying hydra presence")
+   #+END_SRC
+
+** lispy mode
+   This is better than parinfer IMO.
+   #+BEGIN_SRC emacs-lisp
+     (use-package lispy
+       :ensure t
+       :defer 5
+       :config
+       (add-hook 'emacs-lisp-mode-hook 'lispy-mode)
+       (add-hook 'lisp-mode-hook 'lispy-mode)
+       (add-hook 'lisp-interaction-mode-hook 'lispy-mode))
+   #+END_SRC
+** Archive
+   Just in case I need to do stuff with ivy, this is a basic toy template to interact with it.
+   #+BEGIN_SRC emacs-lisp
+     ;; (defun test ()
+     ;;   "just to test"
+     ;;   (interactive)
+     ;;   (ivy-read "test" '(("First option" "first text" "option 1")
+     ;; 		     ("Second option" "second text") ("third" "third text" "option 2")
+     ;; 		     ("and fourth option" "fourth text" "fourth option"))
+     ;; 	    :action '(1
+     ;; 		      ("o" (lambda (x)
+     ;; 			     (interactive)
+     ;; 			     (with-ivy-window
+     ;; 			       (insert (format "%s" (elt x 1)))))
+     ;; 		       "hey")
+     ;; 		      ("p" (lambda (x)
+     ;; 			     (interactive)
+     ;; 			     (with-ivy-window
+     ;; 			       (insert (format "%s" (elt x 2)))))
+     ;; 		       "haaaa"))))
+   #+END_SRC
+** magit
+   #+BEGIN_SRC emacs-lisp
+     (use-package magit
+       :ensure t
+       :defer 10
+       :config
+       (global-set-key [?\C-x ?g] 'magit-status)
+       (setq magit-completing-read-function 'ivy-completing-read))
+   #+END_SRC
+** slime
+   #+BEGIN_SRC emacs-lisp
+     ;; (setq inferior-lisp-program "/usr/local/bin/sbcl")
+     ;; (use-package slime
+     ;;   :ensure t 
+     ;;   :defer 20
+     ;;   :config
+     ;;   (define-key slime-mode-map [?\C-x ?\C-e] 'slime-eval-last-expression))
+   #+END_SRC
+** music
+   My own music plugin.
+   #+BEGIN_SRC emacs-lisp
+     ;; (load-file "~/.emacs.d/my_packages/music/music.el")
+   #+END_SRC
+** iedit-mode
+   I think this can totally replace the use of multiple cursors that I
+   can think of, totally.
+   #+BEGIN_SRC emacs-lisp
+     (use-package iedit :ensure t
+       :defer 10
+       :config
+       ;; bind to "C-;", the number is produced by the function kbd
+       (global-set-key [67108923] 'iedit-mode))
+   #+END_SRC
+** esup
+   start-up profiling
+   #+BEGIN_SRC emacs-lisp
+     ;; (use-package esup
+     ;;   :ensure t
+     ;;   :defer t)
+   #+END_SRC
+** pdf-tools
+   I finally made up the mind to install this package.
+   Some unnecessary changes
+   #+BEGIN_SRC emacs-lisp
+     (use-package pdf-tools
+       :ensure t
+       :defer 15
+       :pin manual ;; manually update
+       :config
+       ;; initialise
+       (pdf-tools-install)
+       ;; open pdfs scaled to fit page
+       (setq-default pdf-view-display-size 'fit-width)
+       ;; use normal isearch
+       (define-key pdf-view-mode-map (kbd "s-s") 'isearch-forward)
+       (define-key pdf-view-mode-map [?j] (lambda () (interactive) (pdf-view-scroll-up-or-next-page 1)))
+       (define-key pdf-view-mode-map [?k] (lambda () (interactive) (pdf-view-scroll-down-or-previous-page 1))))
+   #+END_SRC
+** my hydras
+   #+BEGIN_SRC emacs-lisp
+     (add-to-list 'load-path (expand-file-name "my_packages/ideal" user-emacs-directory))
+
+     (require 'ideal)
+   #+END_SRC
+** command-log-mode
+   #+BEGIN_SRC emacs-lisp
+     (use-package command-log-mode
+       :ensure t
+       :demand
+       :config
+       (setq command-log-mode-auto-show t)
+       (setq global-command-log-mode t))
+   #+END_SRC
+** calculate dates
+   #+BEGIN_SRC emacs-lisp
+     (defun durand-days-between (date1 date2 &optional base)
+       "The default `days-between' function is not clear about
+     what date string format is allowed, so I make my own version.
+
+     The date string is delimited by either \"-\" or spaces or \"_\":
+     anything matched by `[ |_|-]+'.
+     And it should be in this order: `YEAR-MONTH-DAY'.
+
+     If optional BASE is non-nil, then it should be a positive integer between `2' and `36', and
+     the output will be a string representation of the difference between the two dates
+     with respect to the given BASE.
+     If BASE is omitted or does not satisfy the constraints, then it defults to 10."
+       (interactive)
+       (require 'calc-bin)	    ; required for convenient radix conversion
+       (let* ((day1-string (split-string date1 "[ |_|-]+"))
+	      (day2-string (split-string date2 "[ |_|-]+"))
+	      (day1-list (mapcar #'string-to-number day1-string))
+	      (day2-list (mapcar #'string-to-number day2-string))
+	      (day1-time (time-to-days (encode-time 0 0 0
+						    (caddr day1-list)
+						    (cadr day1-list)
+						    (car day1-list))))
+	      (day2-time (time-to-days (encode-time 0 0 0
+						    (caddr day2-list)
+						    (cadr day2-list)
+						    (car day2-list))))
+	      (radix-string-function (lambda (num base)
+				       (cond ((and (integerp base)
+						   (<= 2 base)
+						   (>= 36 base))
+					      (let ((calc-number-radix base))
+						(math-format-radix num)))
+					     (t
+					      (format "%d" num))))))
+	 (funcall radix-string-function (- day1-time day2-time) base)))
+
+     ;; (mapconcat (lambda (x) (if (= x ?1) "嘰" "咕"))
+     ;; 	   (durand-days-between "2018-08-07"
+     ;; 				"2017-06-25"
+     ;; 				2)
+     ;; 	   "")
+
+     (defun durand-MAOBAOBAO-date-calc (&optional 咕嘰)
+       "Calculate the difference between today and \"2017-06-25\".
+
+     If `咕嘰' is non-nil, then convert the result to a string of the two characters:
+     \"咕\" means 0 and \"嘰\" means 1."
+       (interactive)
+       (let ((result (durand-days-between
+		      (mapconcat
+		       (lambda (x) (format "%d" x))
+		       ((lambda (x)
+			  (list
+			   (caddr x)
+			   (car x)
+			   (cadr x)))
+			(calendar-current-date))
+		       " ")
+		      "2017_06_25"
+		      2))
+	     (convert-function (or (and 咕嘰
+					'(lambda (x) (if (= x ?1) "嘰" "咕")))
+				   'char-to-string)))
+	 (mapconcat convert-function result "")))
+   #+END_SRC
+** elfeed-mu4e
+   #+BEGIN_SRC emacs-lisp
+     (load-file (expand-file-name "mu-el.el" user-emacs-directory))
+   #+END_SRC
+** Undo-Tree
+   #+BEGIN_SRC emacs-lisp
+     (use-package undo-tree
+       :ensure t
+       :defer 10
+       :config
+       (define-key global-map [remap undo] 'undo-tree-undo)
+       (define-key global-map [?\C--] 'undo-tree-redo)
+       (define-key global-map [?\H-u] 'undo-tree-visualize))
+   #+END_SRC
+** org-link support for different modes
+*** org-mu4e
+    It turns out org integration is really wonderful once you overcame
+    the trouble of setting up mu4e.
+
+    #+BEGIN_SRC emacs-lisp
+      (require 'org-mu4e)
+
+      (setq org-mu4e-link-query-in-headers-mode nil)
+
+      (org-link-set-parameters "mu4e" :follow #'org-mu4e-open
+			       :store #'org-mu4e-store-link)
+    #+END_SRC
+*** org-pdfview
+    #+BEGIN_SRC emacs-lisp
+      (use-package org-pdfview
+	:ensure t
+	:demand)
+    #+END_SRC
+*** org elfeed
+    This can enhance elfeed usability by letting me track interesting
+    links by means of org mode files and links.
+    #+BEGIN_SRC emacs-lisp
+      (defun org-elfeed-store-link ()
+	"Store a link to an elfeed search or entry buffer."
+	(cond ((derived-mode-p 'elfeed-search-mode)
+	       (org-store-link-props
+		:type "elfeed"
+		:link (format "elfeed:%s" elfeed-search-filter)
+		:description elfeed-search-filter))
+	      ((derived-mode-p 'elfeed-show-mode)
+	       (org-store-link-props
+		:type "elfeed"
+		:link (format "elfeed:%s#%s"
+			      (car (elfeed-entry-id elfeed-show-entry))
+			      (cdr (elfeed-entry-id elfeed-show-entry)))
+		:description (elfeed-entry-title elfeed-show-entry)))))
+
+      (defun org-elfeed-open (filter-or-id)
+	"Jump to an elfeed entry or search, depending on what FILTER-OR-ID looks like."
+	(message "filter-or-id: %s" filter-or-id)
+	(if (string-match "\\([^#]+\\)#\\(.+\\)" filter-or-id)
+	    (elfeed-show-entry (elfeed-db-get-entry (cons (match-string 1 filter-or-id)
+							  (match-string 2 filter-or-id))))
+	  (switch-to-buffer (elfeed-search-buffer))
+	  (unless (eq major-mode 'elfeed-search-mode)
+	    (elfeed-search-mode))
+	  (elfeed-search-set-filter filter-or-id)))
+
+      (org-link-set-parameters
+       "elfeed"
+       :follow 'org-elfeed-open
+       :store 'org-elfeed-store-link)
+    #+END_SRC
+** midnight mode
+   This built-in mode is a time saver, I guess...
+   #+BEGIN_SRC emacs-lisp
+     ;; (require 'midnight)
+     ;; (add-to-list 'clean-buffer-list-kill-never-regexps "elfeed")
+     ;; (add-to-list 'clean-buffer-list-kill-never-regexps "mu4e")
+     ;; (add-to-list 'clean-buffer-list-kill-never-regexps "\\.tex")
+     ;; (add-to-list 'clean-buffer-list-kill-never-buffer-names "setting.org")
+     ;; (add-to-list 'clean-buffer-list-kill-never-buffer-names "*server*")
+     ;; (add-to-list 'clean-buffer-list-kill-buffer-names "*Calculator*")
+     ;; (setq clean-buffer-list-delay-general 0.04)
+   #+END_SRC
+** re-builder
+   I prefer entering a backslash in regexp by §.
+   #+BEGIN_SRC emacs-lisp
+     (require 're-builder)
+     (define-key reb-mode-map [?§] (lambda () (interactive) (insert "\\")))
+   #+END_SRC

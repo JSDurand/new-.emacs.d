@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: over
+# key: t<o
+# --
+{$1\over$2}$0

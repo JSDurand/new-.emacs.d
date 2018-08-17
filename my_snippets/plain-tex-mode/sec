@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: sec
+# key: s
+# --
+\sec $1
+
+$0

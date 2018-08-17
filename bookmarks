@@ -1,0 +1,68 @@
+;;;; Emacs Bookmark Format Version 1 ;;;; -*- coding: utf-8 -*- 
+;;; This format is meant to be slightly human-readable;
+;;; nevertheless, you probably don't want to edit it.
+;;; -*- End Of Bookmark File Format Version Stamp -*-
+(("sort.tex"
+ (filename . "~/Desktop/Centre/TeX/Macros/test/sort.tex")
+ (front-context-string . "\n\n\n\n\\seq a y g t")
+ (rear-context-string . "arily give up...")
+ (position . 1486))
+("jotdown.tex"
+ (filename . "~/Desktop/Centre/Mes notes/Les papiers/NCTS thèse/Report/jotdown.tex")
+ (front-context-string)
+ (rear-context-string . "em in question!\n")
+ (position . 5188))
+("org-capture-last-stored"
+ (filename . "~/org/notes.org")
+ (front-context-string . "** Update music ")
+ (rear-context-string . "es]]\n\n So cool!\n")
+ (position . 14113))
+("[Greco_S.,_Strano_R.]_Complete_Intersections(b-ok.xyz).pdf"
+ (filename . "~/Downloads/[Greco_S.,_Strano_R.]_Complete_Intersections(b-ok.xyz).pdf")
+ (position . 1)
+ (page . 9)
+ (slice)
+ (size . fit-width)
+ (origin 0.0 . 0.2553191489361702)
+ (handler . pdf-view-bookmark-jump-handler))
+("university-plan.org"
+ (filename . "~/org/university-plan/university-plan.org")
+ (front-context-string . "* Purpose\n  I sh")
+ (rear-context-string)
+ (position . 1))
+("tex.org"
+ (filename . "~/.emacs.d/my_packages/tex.org")
+ (front-context-string . "* Purpose\n  I wa")
+ (rear-context-string)
+ (position . 1))
+("setting.org"
+ (filename . "~/.emacs.d/setting.org")
+ (front-context-string . "** my hydras\n   ")
+ (rear-context-string . "))\n   #+END_SRC\n")
+ (position . 23296))
+("overconvergent.tex"
+ (filename . "~/Desktop/Centre/Mes notes/Les papiers/NCTS thèse/Report/overconvergent.tex")
+ (front-context-string . "\\proof\nOne just ")
+ (rear-context-string . "verconvergent.\n\n")
+ (position . 19808))
+("chapter5.tex"
+ (filename . "~/Desktop/Centre/Mes notes/Les papiers/NCTS thèse/Report/chapter5.tex")
+ (front-context-string . "\\heading 5.2.1. ")
+ (rear-context-string . "portant point!\n\n")
+ (position . 4449))
+("note"
+ (filename . "~/org/notes.org")
+ (front-context-string . "#+title: Quick N")
+ (rear-context-string)
+ (position . 1))
+("ideal.el"
+ (filename . "~/elisp_packages/ideal/ideal.el")
+ (front-context-string . "(defun durand-bo")
+ (rear-context-string . "keyboard-quit)\n\n")
+ (position . 651))
+("account-2018-8.org"
+ (filename . "~/org/account/account-2018-8.org")
+ (front-context-string . "* Accounts  \n** ")
+ (rear-context-string)
+ (position . 1))
+)

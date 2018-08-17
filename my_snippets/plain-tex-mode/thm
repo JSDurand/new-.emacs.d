@@ -1,0 +1,15 @@
+# -*- mode: snippet -*-
+# name: thm
+# key: t<t
+# expand-env: ((yas-wrap-around-region nil))
+# --
+
+\\thm
+${1:theorem statement here}
+\\endthm
+
+\\proof
+${1:$(format "%%The proof of %s is as follows." (downcase yas-text))}
+This completes the proof.
+\\endproof
+$0

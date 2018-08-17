@@ -1,0 +1,10 @@
+#!/usr/local/bin/bash
+
+# Fetch the content and then pipe it to pup "li a attr{href}" | tail -n 1
+# and find the needed novel page to display.
+
+# pageURL=$(curl -s $1 | pup "li a attr{href}" | tail -n 1)
+# pageURL=$2
+# base=$(echo $1 | sed 's/\(.*\/\).*/\1/') # strip off everything after the final /.
+# url="$base$pageURL"
+echo $(curl -s $1 | pup "body json{}")

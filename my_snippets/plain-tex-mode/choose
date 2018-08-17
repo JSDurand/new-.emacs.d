@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: choose
+# key: t<c
+# --
+{$1\choose $2}$0
