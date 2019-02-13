@@ -1,4 +1,7 @@
-;; Write the completion backend for tex.
+;; Write the completion backend for tex. Both company and the original
+;; built-in completion-at-point do not give me much luck. I think I
+;; shall build my own completion system, on top of ivy: either
+;; ivy-read, or ivy-completing-read, or both.
 
 (require 'cl-lib)
 (require 'company)
@@ -56,10 +59,11 @@ It searches for macros and offers to complete them."
       (meta (durand-prettify
 	     (find-macro-content (cadr (assoc arg defs-alist))))))))
 
-(add-to-list 'company-backends 'company-tex-backend)
+;; (add-to-list 'company-backends 'company-tex-backend)
 
-(with-eval-after-load 'tex-mode
-  (define-key plain-tex-mode-map [tab] 'company-complete-common))
+;; (with-eval-after-load 'tex-mode
+;;   (define-key plain-tex-mode-map [tab] 'completion-at-point)
+;;   (add-to-list 'completion-at-point-functions 'durand-tex-completion-at-point-function))
 
 
 

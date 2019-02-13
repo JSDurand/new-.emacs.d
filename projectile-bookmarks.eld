@@ -1,1 +1,1 @@
-("~/.emacs.d/" "~/Desktop/Centre/Mes notes/Les papiers/NCTS thèse/Report/" "~/org/account/" "~/")
+("~/.emacs.d/" "~/" "~/org/account/" "~/Desktop/Centre/Mes notes/Les papiers/NCTS thèse/Report/" "~/control/" "~/.emacs.d/scripts/" "~/elisp_packages/database/" "~/Desktop/Centre/A propos de programmes/Haskell/NeuralNetwork/")

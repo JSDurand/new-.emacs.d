@@ -1,0 +1,146 @@
+  ;; (setq org-date-tree-headline-regexp (concat "^\\*+\\s-" org-ts-regexp0))
+					  ; Make use of the existing wheels
+
+  ;;;###autoload
+  ;; (defun org-find-all-days ()
+  ;;   "Get all days information in TODO items
+
+  ;;   The entry is supposed to contain a timestamp of the form
+  ;;   \"<2018-08-05 Dim>\""
+  ;;   (interactive)
+  ;;   (org-map-entries (lambda ()
+  ;; 		     (re-search-forward "<" nil t)
+  ;; 		     (cons (buffer-substring-no-properties
+  ;; 			    (point)
+  ;; 			    (progn (re-search-forward " " nil t) (1- (point))))
+  ;; 			   (progn (beginning-of-line) (point))))
+  ;; 		   "+TODO=\"ACCOUNT\""))
+
+  ;;;###autoload
+  ;; (defun org-modify-account ()
+  ;;   "Modify the account fields at point"
+  ;;   (interactive)
+  ;;   (with-account
+  ;;    (let* ((account-field-list (org-get-account-fields))
+  ;; 	  (account-field-alist (map 'list
+  ;; 				    (lambda (l)
+  ;; 				      (cons (car l)
+  ;; 					    (mapconcat #'identity (cdr l) " | ")))
+  ;; 				    account-field-list))
+  ;; 	  (target-line (ivy-read "Choose one field: "
+  ;; 				 (map 'list 'cdr account-field-alist)
+  ;; 				 :require-match t
+  ;; 				 :caller 'org-modify-account))
+  ;; 	  (target-info (split-string target-line " | "))
+  ;; 	  (target-number (car (rassoc target-line account-field-alist)))
+  ;; 	  (target-item (read-string "New item: " (car target-info)))
+  ;; 	  (target-price (read-string "New price: " (cadr target-info)))
+  ;; 	  (target-note (read-string "New note: " (caddr target-info))))
+  ;;      (outline-show-entry)
+  ;;      (re-search-forward "TBLFM" nil t 2)
+  ;;      (previous-line)
+  ;;      (assert (org-table-p))
+  ;;      (org-table-put target-number 1 target-item)
+  ;;      (org-table-put target-number 2 target-price)
+  ;;      (org-table-put target-number 3 target-note t)
+  ;;      (org-table-recalculate t)
+  ;;      (re-search-forward "TBLFM" nil t -1)
+  ;;      (previous-line)
+  ;;      (assert (org-table-p))
+  ;;      (org-table-recalculate t)
+  ;;      (let* ((total (org-no-properties (org-table-get 1 2)))
+  ;; 	    (value (string-to-number total))
+  ;; 	    (divided (/ value 10))
+  ;; 	    (dashes (make-string (min 90 divided) ?-)))
+  ;;        (outline-previous-heading)
+  ;;        (org-set-property "total" total)
+  ;;        (org-set-property "dashes" dashes))
+  ;;      (outline-hide-entry))))
+
+  ;;;###autoload
+  ;; (defun org-delete-account ()
+  ;;   "Delete the account fields at point"
+  ;;   (interactive)
+  ;;   (with-account
+  ;;    (let* ((account-field-list (org-get-account-fields))
+  ;; 	  (account-field-alist (map 'list
+  ;; 				    (lambda (l)
+  ;; 				      (cons (car l)
+  ;; 					    (mapconcat #'identity (cdr l) " | ")))
+  ;; 				    account-field-list))
+  ;; 	  (target-line (ivy-read "Choose one field: "
+  ;; 				 (map 'list 'cdr account-field-alist)
+  ;; 				 :require-match t
+  ;; 				 :caller 'org-modify-account))
+  ;; 	  (target-number (car (rassoc target-line account-field-alist))))
+  ;;      (outline-show-entry)
+  ;;      (re-search-forward "TBLFM" nil t 2)
+  ;;      (previous-line)
+  ;;      (assert (org-table-p))
+  ;;      (org-table-goto-line target-number)
+  ;;      (kill-whole-line 2)
+  ;;      (re-search-forward "total" nil t -1)
+  ;;      (org-table-recalculate t)
+  ;;      (re-search-forward "TBLFM" nil t -1)
+  ;;      (previous-line)
+  ;;      (assert (org-table-p))
+  ;;      (org-table-recalculate t)
+  ;;      (let* ((total (org-no-properties (org-table-get 1 2)))
+  ;; 	    (value (string-to-number total))
+  ;; 	    (divided (/ value 10))
+  ;; 	    (dashes (make-string (min 90 divided) ?-)))
+  ;;        (outline-previous-heading)
+  ;;        (org-set-property "total" total)
+  ;;        (org-set-property "dashes" dashes))
+  ;;      (outline-hide-entry))))
+
+  ;;;###autoload
+  ;; (defun org-clear-account ()
+  ;;   "Modify the account fields at point"
+  ;;   (interactive)
+  ;;   (with-account
+  ;;    (let* ((total-pos (map 'list 'car (org-get-account-fields))))
+  ;;      (outline-show-entry)
+  ;;      (re-search-forward "TBLFM" nil t 2)
+  ;;      (previous-line)
+  ;;      (assert (org-table-p))
+  ;;      (if (> (length total-pos) 1)
+  ;; 	 (dolist (l (cdr total-pos))
+  ;; 	   (org-table-goto-line l)
+  ;; 	   (kill-whole-line 2))
+  ;;        (goto-char (org-table-end)))
+  ;;      (re-search-forward "total" nil t -1)
+  ;;      (org-table-put 2 2 "" t)
+  ;;      (re-search-forward "TBLFM" nil t -1)
+  ;;      (previous-line)
+  ;;      (assert (org-table-p))
+  ;;      (org-table-recalculate t)
+  ;;      (let* ((total (org-no-properties (org-table-get 1 2)))
+  ;; 	    (value (string-to-number total))
+  ;; 	    (divided (/ value 10))
+  ;; 	    (dashes (make-string (min 90 divided) ?-)))
+  ;;        (outline-previous-heading)
+  ;;        (org-set-property "total" total)
+  ;;        (org-set-property "dashes" dashes))
+  ;;      (outline-hide-entry))))
+
+  ;;;###autoload
+  ;; (defun org-set-account-according-to-date (date &optional month year)
+  ;;   "Update accounts tag according to DATE.
+  ;;   DATE is an integer representing a date in month MONTH and year YEAR.
+  ;;   MONTH and YEAR default to the current ones.
+  ;;   This means if a date has the same quotient as DATE when
+  ;;   divided by 7, then it will be tagged `account';
+  ;;   otherwise it will have no tags."
+  ;;   (with-account
+  ;;    (progn
+  ;;      (outline-show-all)
+  ;;      (let ((all-days (length (org-find-all-days))))
+  ;;        (dotimes (running-day all-days)
+  ;; 	 (let ((day (1+ running-day)))
+  ;; 	   (goto-char (org-find-pos-of-day (org-day-format-transform day month year)))
+  ;; 	   (org-set-tags-to (cond ((and
+  ;; 				    (<= day date)
+  ;; 				    (= (/ running-day 7) (/ (1- date) 7))) ":account:")
+  ;; 				  (t nil))))))))
+  ;;   (outline-hide-body))

@@ -3,6 +3,5 @@
 # key: pf
 # --
 \proof
-${1:The proof is as follows.}
+$0La démonstration est la suivante.
 \endproof
-$0

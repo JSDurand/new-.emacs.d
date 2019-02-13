@@ -1,6 +1,6 @@
-(setq delete-old-versions -1 )		; delete excess backup versions silently
-(setq version-control t )		; use version control
-(setq vc-make-backup-files t )		; make backups file even when in version controlled dir
+(setq delete-old-versions t)		; delete excess backup versions silently
+(setq version-control nil)		; use version control
+(setq vc-make-backup-files nil)		; make backups file even when in version controlled dir
 (setq backup-directory-alist `(("." . "~/.emacs.d/backups")) ) ; which directory to put backups file
 (setq vc-follow-symlinks t )				       ; don't ask for confirmation when opening symlinked file
 (setq auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save-list/" t)) ) ;transform backups file name
@@ -11,16 +11,18 @@
 (set-language-environment "UTF-8")
 (setq coding-system-for-write 'utf-8 )
 (setq sentence-end-double-space nil)	; sentence SHOULD end with only a point.
-(setq default-fill-column 80)		; toggle wrapping text at the 80th character
+(setq default-fill-column 90)		; toggle wrapping text at the 90th character
+(setq-default fill-column 90)
+(global-visual-line-mode 1)
 (setq initial-scratch-message "Bonjour!") ; print a default message in the empty scratch buffer opened at startup
 
 (setq-default display-line-numbers nil)
 (setq-default display-line-numbers-current-absolute t)
 (global-set-key (vector ?\s-x) (lambda ()
-				 (interactive)
-				 (setq display-line-numbers
-				       (and (not display-line-numbers)
-					    'relative))))
+                                 (interactive)
+                                 (setq display-line-numbers
+                                       (and (not display-line-numbers)
+                                            'relative))))
 (set-face-attribute 'line-number nil :foreground "light blue")
 (set-face-attribute 'line-number-current-line nil :foreground "gold")
 (tool-bar-mode -1)
@@ -120,8 +122,10 @@ Leave point after open-quotation."
 
 ;;;(set-face-attribute 'default (selected-frame) :height 120)
 ;;;(set-face-attribute 'mode-line nil :height 200)
-(set-default-font "Menlo 20")
+(set-default-font "DejaVu Sans Mono for Powerline 20")
 (defun my-minibuffer-setup ()
+  (let ((inhibit-message t))
+    (toggle-truncate-lines -1))
   (set (make-local-variable 'face-remapping-alist)
        '((default :height 1.1)))
   (with-current-buffer (get-buffer " *Echo Area 0*")
@@ -144,299 +148,9 @@ Leave point after open-quotation."
 ;;   (interactive)
 ;;   (scroll-up (/ (window-body-height) 2)))
 
-(use-package org
-  :ensure t
-  :defer t
-  :config
-  (setq org-todo-keywords '((sequence "TODO" "START" "WORKING" "HARD-WORKING" "ALMOST" "|" "DONE")
-			    (sequence "TO-THINK" "PENDING" "HARD" "IMPOSSIBLE" "|" "SOLVED")))
-  (global-set-key "\C-cl" 'org-store-link)
-  (global-set-key "\C-cc" 'org-capture)
-  (global-set-key "\C-ca" 'org-agenda)
-  (add-hook 'org-mode-hook '(lambda ()
-			      (define-key org-mode-map [?\ù] 'org-advance)
-			      (define-key org-mode-map [?\ç] 'org-retreat)))
-  (define-key org-mode-map [?\C-c tab] 'find-next-link-in-buffer)
-  (define-key org-mode-map [?\C-c \S-tab] 'find-previous-link-in-buffer)
-  (define-key org-mode-map [f8] 'org-account-prefix-map)
-  (advice-add 'org-edit-special :after '(lambda (orig-fun) (delete-other-windows)))
-  (set-face-attribute 'org-block nil :background "gray5" :foreground "DarkOrange1"))
+(load-file (expand-file-name "super-org.el" user-emacs-directory))
 
-(setq org-capture-templates
-      '(("m" "Template for MaoBaoBao Notes" entry
-	 (file+headline "~/org/notes.org" "MaoBaoBao Notes")
-	 "* day %T\n  %?")
-	("n" "record quick diaries" entry
-	 (file+headline "~/org/notes.org" "Diaries")
-	 "* day %T\n  %?")
-	("l" "Store links" entry
-	 (file+headline "~/org/notes.org" "Links")
-	 "* %? %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
-	("b" "Blog posts" entry
-	 (file+headline "~/org/notes.org" "Blog posts")
-	 "* %? %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%i\n")))
-
-(define-prefix-command 'org-account-prefix-map)
-(define-key org-account-prefix-map [?n] 'org-new-account)
-(define-key org-account-prefix-map [?u] 'org-update-account)
-(define-key org-account-prefix-map [?c] 'org-calc-account)
-(define-key org-account-prefix-map [?r] 'org-run-src-block)
-(define-key org-account-prefix-map [?i] 'org-set-item-price-note)
-
-(defmacro with-account (account-func)
-  "Execute ACCOUNT-FUNC only when we are viisting an account file."
-  (interactive)
-  `(cond
-    ((string-prefix-p "account" (buffer-name)) ,account-func)
-    (t (user-error "%s is not an account file" (buffer-name)))))
-
-;;;###autoload
-(defun org-advance (x)
-  (interactive "P")
-  (when (buffer-narrowed-p)
-    (beginning-of-buffer)
-    (widen)
-    (if (not x)
-	(org-next-visible-heading 1)
-      (org-forward-heading-same-level 1)))
-  (org-narrow-to-subtree))
-
-;;;###autoload
-(defun org-retreat (x)
-  (interactive "P")
-  (when (buffer-narrowed-p)
-    (beginning-of-buffer)
-    (widen)
-    (if (not x)
-	(org-previous-visible-heading 1)
-      (org-backward-heading-same-level 1)))
-  (org-narrow-to-subtree))
-
-;;;###autoload
-(defun org-get-account-num ()
-  "count how many days have been tagged 'account'"
-  (interactive)
-  (length (org-map-entries t "account")))
-
-;;;###autoload
-(defun org-get-account-total ()
-  "get the total value of the accuont values"
-  (interactive)
-  (apply '+ (mapcar 'string-to-number
-		    (org-map-entries (lambda ()
-				       (org-entry-get nil "TOTAL")) "account"))))
-;;;###autoload
-(defun org-calc-account ()
-  "sum up my accounts entries, one can limit the entries to sum by the tag 'account'"
-  (interactive)
-  (with-account
-   (let* ((days (org-get-account-num))
-	  (total (org-get-account-total))
-	  (ave (/ total days)))
-     (message (concat
-	       (number-to-string days)
-	       " days, spent "
-	       (number-to-string total)
-	       " with average "
-	       (number-to-string ave))))))
-
-;;;###autoload
-(defun org-find-all-days ()
-  "Get all days information in TODO items
-
-The entry is supposed to contain a timestamp of the form
-\"<2018-08-05 Dim>\""
-  (interactive)
-  (org-map-entries (lambda ()
-		     (re-search-forward "<" nil t)
-		     (cons (buffer-substring-no-properties
-			    (point)
-			    (progn (re-search-forward " " nil t) (1- (point))))
-			   (progn (beginning-of-line) (point))))
-		   "+TODO=\"DONE\""))
-
-;;;###autoload
-(defun org-find-last-day ()
-  "Find the start position of last day entry"
-  (interactive)
-  (cdar (last (org-find-all-days))))
-
-;;;###autoload
-(defun org-find-pos-of-day (day)
-  "Get the start position a specified day entry"
-  (interactive)
-  (let* ((all-days (org-find-all-days))
-	 (day-pos (cdr (assoc day all-days))))
-    day-pos))
-
-;;;###autoload
-(defun org-new-account ()
-  "Make a new account entry"
-  (interactive)
-  (with-account (progn
-		  (org-shifttab 2) ; show an overview, so that going to the last entry is possible
-		  (goto-char (org-find-last-day))
-		  (org-copy-subtree)
-		  (org-paste-subtree)
-		  (goto-char (org-find-last-day))
-		  (dotimes (i 3)
-		    (re-search-forward "<" nil t)
-		    (org-shiftright))
-		  (org-cycle '(1))
-		  (re-search-forward "total" nil t 1)
-		  (next-line 2)
-		  (org-table-next-field)
-		  (org-table-blank-field)
-		  (org-table-next-field)
-		  (org-table-blank-field))))
-
-;;;###autoload
-(defun org-update-account ()
-  "Update the last account entry"
-  (interactive)
-  (with-account (progn
-		  (outline-show-all)
-		  (goto-char (org-find-last-day))
-		  (re-search-forward "TBLFM" nil t 2)
-		  (org-table-calc-current-TBLFM)
-		  (re-search-backward "TBLFM" nil t 2)
-		  (org-table-calc-current-TBLFM)
-		  (previous-line)
-		  (let ((val (org-no-properties (org-table-get 1 2))))
-		    (goto-char (org-find-last-day))
-		    (org-set-property "total" val))
-		  (outline-hide-body))))
-
-;;;###autoload
-(defun org-set-account-according-to-date (date &optional month year)
-  "Update accounts tag according to DATE.
-DATE is an integer representing a date in month MONTH and year YEAR.
-MONTH and YEAR default to the current ones.
-This means if a date has the same quotient as DATE when
-divided by 7, then it will be tagged `account';
-otherwise it will have no tags."
-  (with-account
-   (progn
-     (outline-show-all)
-     (let ((all-days (length (org-find-all-days))))
-       (dotimes (running-day all-days)
-	 (let ((day (1+ running-day)))
-	   (goto-char (org-find-pos-of-day (org-day-format-transform day month year)))
-	   (org-set-tags-to (cond ((and
-				    (<= day date)
-				    (= (/ running-day 7) (/ (1- date) 7))) ":account:")
-				  (t nil))))))))
-  (outline-hide-body))
-
-;;;###autoload
-(defun org-day-format-transform (day month year)
-  "Take an integer DAY and transform it to a string.
-For example,
-(org-day-format-transform 1)
-when executed in August 2018 becomes
-=> \"2018-08-01\""
-  (let* ((day-string (pad-string-to (format "%d" day) 2))
-	 (padded-date-string-list (mapcar (lambda (x) (pad-string-to (format "%d" x) 2))
-					  (calendar-current-date)))
-	 (month (or (and month (pad-string-to (format "%d" month) 2))
-		    (car padded-date-string-list)))
-	 (year (or (and year (pad-string-to (format "%d" year) 2))
-		   (caddr padded-date-string-list))))
-    (concat year
-	    "-"
-	    month
-	    "-"
-	    day-string)))
-
-;;;###autoload
-(defun pad-string-to (str num)
-  "Pad a string STR to be of length greater than or equal to NUM with 0"
-  (cond ((< (length str) num)
-	 (concat (make-string (- num (length str)) ?0) str))
-	(t
-	 str)))
-
-;;;###autoload
-(defun org-run-src-block ()
-  "Search for a src block and run it"
-  (interactive)
-  (with-account
-   (save-excursion
-     (re-search-forward "BEGIN_SRC")
-     (org-babel-execute-src-block))))
-
-;;;###autoload
-(defun org-set-item-price-note (item-name item-price item-note)
-  (interactive (let ((item (ivy-read "Enter item: "
-				     '("breakfast" "brunch" "brunverage"
-				       "lunch" "dinner" "beverage")
-				     :caller 'org-set-item-price-note))
-				     ;; :update-fn #'tex-follow-up))
-		     (price (read-number "Enter price: " 0))
-		     (note (read-string "Enter note: " nil nil "todo")))
-		 (list item price note)))
-  (end-of-buffer)
-  (outline-show-all)
-  (re-search-backward "tblfm")
-  (previous-line)
-  (org-table-insert-row 1)
-  (org-table-insert-hline)
-  (org-table-put (org-table-current-line) (org-table-current-column) item-name)
-  (org-table-put (org-table-current-line) (1+ (org-table-current-column)) (number-to-string item-price))
-  (org-table-put (org-table-current-line) (+ 2 (org-table-current-column)) item-note t)
-  (outline-hide-body))
-
-;;;###autoload
-(defun org-delete-item-price-note (row-num &optional total-num)
-  (interactive (let* ((total-num (save-excursion
-				   (end-of-buffer)
-				   (outline-show-all)
-				   (re-search-backward "tblfm")
-				   (previous-line 2)
-				   (org-table-current-line)))
-		      (num (ivy-read "Enter row number: "
-				     (mapcar #'number-to-string (number-sequence 1 total-num))
-				     :caller 'org-delete-item-price-note)))
-		 (list (string-to-number num) total-num)))
-  (end-of-buffer)
-  (outline-show-all)
-  (re-search-backward "tblfm")
-  (previous-line 2)
-  (org-table-goto-line row-num)
-  (kill-whole-line 2)
-  (outline-hide-body))
-
-;;;###autoload
-(defun find-next-link-in-buffer (&optional arg)
-  "
-Navigate to the links in the buffer \"without setting marks\";
-
-If ARG is nil, then go to the next link.
-If ARG is non-nil, then it is interpreted according to the interactive form \"p\""
-  (interactive "p")
-  (let ((search-count (or arg 1)))
-    (re-search-forward "\\[\\[[^][]+]\\[[^][]+]]" nil t search-count)
-    (backward-char 1)))
-
-;;;###autoload
-(defun find-previous-link-in-buffer (&optional arg)
-  "
-Navigate to the links in the buffer \"without setting marks\";
-
-If ARG is nil, then go to the previous link.
-If ARG is non-nil, then it is interpreted according to the interactive form \"p\"
-
-This is a convenient variant of `find-next-link-in-buffer'"
-  (interactive "p")
-  (let ((search-count (or arg 1)))
-    (re-search-backward "\\[\\[[^][]+]\\[[^][]+]]" nil t search-count)
-    (forward-char 1)))
-
-;; just in case I need this
-;; (defun org-retrieve-value ()
-;;   "retrieve value from property drawer"
-;;   (org-element-map (org-element-parse-buffer) 'property-drawer (lambda (hl)
-;; 								 (nth 3 (nth 1 (assoc 'node-property hl))))))
+(setq diary-file "~/org/diary")
 
 (load-file (expand-file-name "custom.el" user-emacs-directory))
 
@@ -459,7 +173,69 @@ This is a convenient variant of `find-next-link-in-buffer'"
   :defer t
   :config
   ;; (global-set-key (kbd "C-$") 'er/expand-region)
-  (pending-delete-mode t))
+  (pending-delete-mode t)
+  (setf expand-region-fast-keys-enabled nil)
+  ;; (setf (nthcdr 8 er/try-expand-list)
+  ;;       (cdr (nthcdr 8 er/try-expand-list)))
+  )
+
+;; (defvar durand-custom-pairs '("()" "[]" "<>"
+;;                               "{}" "\\[\\]"
+;;                               "\\(\\)" "\\{\\}")
+;;   "Some custom pairs to mark inside; I cannot handle identical delimiters at present.")
+
+;; (defun durand-mark-inside-custom-pair ()
+;;   "Mark inside some customo pairs"
+;;   (interactive)
+;;   (let ((open (durand-find-open-pair))
+;;         (close (durand-find-close-pair)))
+;;     (when (and open close)
+;;       (goto-char close)
+;;       (set-mark open))))
+
+;;;###autoload
+;; (defun durand-find-open-pair ()
+;;   "Find the open pair before `(point)'"
+;;   (interactive)
+;;   (let ((beg (save-excursion
+;;                (re-search-backward "\n[\t ]*\n" nil 'go)
+;;                (skip-chars-forward "\n\t ")
+;;                (point)))
+;;         res)
+;;     (dolist (pair durand-custom-pairs)
+;;       (let* ((open-pair (substring-no-properties pair 0 (/ (length pair) 2)))
+;;              (close-pair (substring-no-properties pair (/ (length pair) 2) nil))
+;;              (op (save-excursion
+;;                    (search-backward open-pair beg 'go)
+;;                    (point)))
+;;              (cl (save-excursion
+;;                    (search-backward close-pair beg 'go)
+;;                    (point))))
+;;         (when (> op cl)
+;;           (push op res))))
+;;     (when (and res (consp res)) (apply #'max res))))
+
+;;;###autoload
+;; (defun durand-find-close-pair ()
+;;   "Find the close pair after `(point)'"
+;;   (interactive)
+;;   (let ((end (save-excursion
+;;                (re-search-forward "\n[\t ]*\n" nil 'go)
+;;                (skip-chars-backward "\n\t ")
+;;                (point)))
+;;         res)
+;;     (dolist (pair durand-custom-pairs res)
+;;       (let* ((open-pair (substring-no-properties pair 0 (/ (length pair) 2)))
+;;              (close-pair (substring-no-properties pair (/ (length pair) 2) nil))
+;;              (op (save-excursion
+;;                    (search-forward open-pair end 'go)
+;;                    (point)))
+;;              (cl (save-excursion
+;;                    (search-forward close-pair end 'go)
+;;                    (point))))
+;;         (when (>= op cl)
+;;           (push cl res))))
+;;     (when (and res (consp res)) (apply #'min res))))
 
 ;; (use-package company
 ;;   :ensure t
@@ -488,8 +264,7 @@ This is a convenient variant of `find-next-link-in-buffer'"
   (wrap-region-global-mode t)
   (wrap-region-add-wrapper "$" "$")
   (wrap-region-add-wrapper "=" "=")
-  (wrap-region-add-wrapper "-" "-")
-  (wrap-region-add-wrapper "/" "/"))
+  (wrap-region-add-wrapper "-" "-"))
 
 (use-package yasnippet
   :ensure t
@@ -499,12 +274,13 @@ This is a convenient variant of `find-next-link-in-buffer'"
   (setq yas-snippet-dirs '("~/.emacs.d/my_snippets"))
   (yas-global-mode t))
 
-;; (use-package multiple-cursors :ensure t
-;;   :config
-;;   (global-set-key (kbd "C-<") 'mc/mark-next-like-this)
-;;   (global-set-key (kbd "M-<") 'mc/mark-previous-like-this)
-;;   (global-set-key (kbd "C-c M-<") 'mc/mark-all-like-this)
-;;   (global-set-key (kbd "C-S-c C-S-c") 'mc/edit-lines))
+(use-package multiple-cursors :ensure t
+  :config
+  (global-set-key (kbd "C-&") 'mc/mark-next-like-this)
+  (global-set-key (kbd "M-&") 'mc/mark-previous-like-this)
+  (global-set-key (kbd "s-&") 'mc/mark-all-like-this)
+  (global-set-key (kbd "H-&") 'mc/edit-lines)
+  (global-set-key (kbd "C-<") 'mc/mark-pop))
 
 ;; (fset 'ud
 ;;       [?\C-c ?g ?\C-r ?t ?b ?l ?f ?m return ?\C-c ?\C-c ?\C-r ?t ?b ?l ?f ?m return ?\C-c ?\C-c ?\C-r ?s ?u ?m return tab ?\C-$ ?\M-w ?\C-c ?\C-p ?\C-c ?\C-x ?P ?t ?o ?t ?a ?l ?: ?  ?\C-y ?\C-\M-j])
@@ -520,9 +296,10 @@ This is a convenient variant of `find-next-link-in-buffer'"
   (setq ivy-use-virtual-buffers nil)
   (global-set-key [?\s-s] 'counsel-grep-or-swiper)
   (global-set-key [?\C-s] 'counsel-grep-or-swiper)
+  (global-set-key [?\H-s] 'isearch-forward)
   (setq ivy-count-format "(%d/%d) ")
   (global-set-key [?\s-f] 'counsel-find-file)
-  (global-set-key [?\M-x] 'counsel-M-x)
+  ;; (global-set-key [?\M-x] 'counsel-M-x)
   (setq ivy-use-selectable-prompt t))
 
 (use-package ivy
@@ -530,15 +307,21 @@ This is a convenient variant of `find-next-link-in-buffer'"
   :defer 1
   :config
   (setq ivy-re-builders-alist
-	'((swiper . ivy--regex-ignore-order)
-	  (t . ivy--regex-fuzzy)))
+        '((swiper . ivy--regex-ignore-order)
+          (swiper-multi . ivy--regex-ignore-order)
+          (t . ivy--regex-fuzzy)))
+  (setq ivy-wrap t)
   (ivy-set-actions
    'ivy-switch-buffer
    '(("k"
       (lambda (x)
-	(kill-buffer-if-possible x)
-	(ivy--reset-state ivy-last))
+        (kill-buffer-if-possible x)
+        (ivy--reset-state ivy-last))
       "kill"))))
+
+;; minibuffer color customisation
+(set-face-foreground 'minibuffer-prompt "goldenrod2")
+(set-face-background 'minibuffer-prompt "chocolate4")
 
 ;; I ended up writing my own version using `ivy-read'...
 ;; (use-package headlong
@@ -551,6 +334,45 @@ This is a convenient variant of `find-next-link-in-buffer'"
   (interactive)
   (when (get-buffer buf)
     (kill-buffer buf)))
+
+;;;###autoload
+(defun durand-ivy-format-function-arrow (cands)
+  "Transform CAND-PAIRS into a string for minibuffer using \"->\" instead of \">\"."
+  (ivy--format-function-generic
+   (lambda (str)
+     (concat (propertize "☸ "
+                         'face
+                         '(:foreground "gold" :height 300))
+             (ivy--add-face str 'ivy-current-match)))
+   (lambda (str)
+     (concat "   " str))
+   cands
+   "\n"))
+(setq ivy-format-function 'durand-ivy-format-function-arrow)
+
+;;;###autoload
+(defun durand-ivy-format-function-generic (selected-fn other-fn cands separator)
+  "Ido style!"
+  (let ((i -1))
+    (mapconcat
+     (lambda (str)
+       (let ((curr (eq (cl-incf i) 0)))
+         (if curr
+             (funcall selected-fn str)
+           (funcall other-fn str))))
+     (durand-ivy-cycle-collection (- 0 ivy--window-index) cands)
+     separator)))
+
+;;;###autoload
+(defun durand-ivy-cycle-collection (arg col)
+  ;; (message "%d" (length col))
+  (let* ((arg (or arg 1))
+         (len (length col))
+         new-li)
+    (dotimes (ind len new-li)
+      (push
+       (nth (mod (- len ind arg 1) len) col)
+       new-li))))
 
 (use-package ivy-hydra :ensure t :defer t)
 
@@ -565,18 +387,32 @@ This is a convenient variant of `find-next-link-in-buffer'"
   :defer t
   :config
   (with-eval-after-load 'projectile
+    (projectile-global-mode 1)
+    (setq projectile-completion-system 'ivy)
     (define-key projectile-mode-map [?\s-d] 'projectile-command-map)))
+
+(use-package amx
+  :ensure t
+  :defer t
+  :config
+  (amx-mode 1)
+  (global-set-key [?\M-x] 'amx)
+  (setq amx-ignored-command-matchers nil)
+;; I find it useful to loop up commands based on key bindings
+  (setq amx-show-key-bindings nil))
 
 (use-package avy
   :ensure t
-  :bind (("M-s" . avy-goto-char))
+  :bind (("M-s" . avy-goto-char-timer))
   :config
   (setq avy-keys (nconc
-		  (number-sequence ?a ?z)
-		  (number-sequence ?A ?Z))))
+                  (number-sequence ?a ?z)
+                  (number-sequence ?A ?Z))))
 
 (column-number-mode 1)
 (set-face-attribute 'mode-line-buffer-id nil :background "gray10" :foreground "DarkOrange1")
+;; (set-face-font 'mode-line-buffer-id "DejaVu Sans Mono for Powerline")
+;; (set-face-attribute 'mode-line-buffer-id nil :height 1.1)
 (set-face-attribute 'mode-line-highlight nil :box nil :background "deep sky blue")
 (set-face-attribute 'mode-line-inactive  nil :background "gray10" :foreground "gray50")
 
@@ -593,59 +429,146 @@ This is a convenient variant of `find-next-link-in-buffer'"
 
 (defun my-position ()
   "My function of mode-line-position"
-  (if (string= major-mode "pdf-view-mode")
-      mode-line-position
-    ""))
+  (cond
+   ((string= major-mode "pdf-view-mode")
+    mode-line-position)
+   ((string= major-mode "org-agenda-mode")
+    (org-agenda-show-blocks-number))))
+
+(defun propertized-buffer-identification (fmt)
+  "Return a list suitable for `mode-line-buffer-identification'.
+FMT is a format specifier such as \"%12b\".  This function adds
+text properties for face, help-echo, and local-map to it."
+  (list (propertize fmt
+                    'face 'mode-line-buffer-id
+                    'help-echo
+                    (purecopy "Nom du tampon
+souris-1: Dernier tampon\nsouris-3: Prochain tampon")
+                    'mouse-face 'mode-line-highlight
+                    'local-map mode-line-buffer-identification-keymap)))
 
 (setq-default mode-line-buffer-identification
-	      (propertized-buffer-identification " %b "))
+              (propertized-buffer-identification " %b "))
 
 (defun my-mode-line-modified ()
   (propertize
    (concat
     (if (buffer-modified-p)
-	"M "
+        (propertize "M " 'face '(:foreground "DarkGoldenrod2"))
       " ")
-    (if (string-prefix-p "*" (buffer-name))
-	"N "
+    (if (not (buffer-file-name))
+        (propertize "N " 'face '(:foreground "LightSkyBlue3"))
       " ")
     (if buffer-read-only
-	"R "
+        (propertize "R " 'face '(:foreground "IndianRed1"))
       " "))
-   'help-echo "M: modified 
-N: probably not a file
-R: read-only"))
+   'help-echo "M: modifié 
+N: C'est peut-être pas un fichier
+R: seulement pour lire"))
 
 (defvar durand-custom-modeline ""
   "A custom variable to set for customisation")
 
-(setq-default mode-line-format
-	      '("%e"
-		mode-line-front-space
-		;; mode-line-mule-info -- I'm always on utf-8
-		mode-line-client
-		(:eval (my-mode-line-modified))
-		;; mode-line-remote -- no need to indicate this specially
-		;; mode-line-frame-identification -- this is for text-mode emacs only
-		(:eval (propertize durand-custom-modeline 'face 'durand-custom-mode-face))
-		" "
-		mode-line-buffer-identification
-		" "
-		;; mode-line-position
-		(:eval (my-position))
-		;;(vc-mode vc-mode)  -- I use magit
-		;; (flycheck-mode flycheck-mode-line) -- I don't have this
-		" %[ %m %] "
-		;; Only major mode
-		mode-line-misc-info
-		mode-line-end-spaces
-		;; mode-line-modes -- I don't want all those minor modes information
-		;; " %I "
-		" %n "))
-(set-face-attribute 'mode-line nil
-		    :background "gray10" :foreground "white" :height 1.3)
+(defface durand-mode-line-client-face '((t . (:foreground "CadetBlue2")))
+  "Face for mode line client construct")
 
-(defface durand-custom-mode-face '((t (:foreground "red" :inherit mode-line)))
+(defun durand-mode-line-buffer-name ()
+  "trimmed buffer name"
+  (let ((orig (format-mode-line (propertized-buffer-identification "%b")))
+        (max 35))
+    (if (> (length orig) max)
+        (truncate-string-to-width orig max nil nil t)
+      orig)))
+
+(defun durand-mode-line-client ()
+  "Custom mode line client construct"
+  (propertize
+   (if (frame-parameter nil 'client)
+       "@" "")
+   'face 'durand-mode-line-client-face
+   'help-echo "un client d'emacs"))
+
+(setq-default mode-line-format
+              '("%e"
+                mode-line-front-space
+                ;; mode-line-mule-info -- I'm always on utf-8
+                (:eval (durand-mode-line-client))
+                (:eval (my-mode-line-modified))
+                ;; mode-line-remote -- no need to indicate this specially
+                ;; mode-line-frame-identification -- this is for text-mode emacs only
+                (:eval (propertize durand-custom-modeline 'face 'durand-custom-mode-face))
+                " "
+                (:eval (durand-mode-line-buffer-name))
+                " "
+                ;; mode-line-position
+                (:eval (my-position))
+                ;;(vc-mode vc-mode)  -- I use magit
+                ;; (flycheck-mode flycheck-mode-line) -- I don't have this
+                " %[ "
+                mode-name
+                " %] "
+                ;; Only major mode
+                " %n "
+                mode-line-misc-info
+                mode-line-end-spaces))
+                ;; mode-line-modes -- I don't want all those minor modes information
+                ;; " %I "
+
+
+(setq durand-default-mode-line-format mode-line-format)
+
+(defvar durand-mode-line-toggled nil
+  "Determine if mode line is toggled")
+
+(make-variable-buffer-local 'durand-mode-line-toggled)
+
+(defun durand-toggle-mode-line (&optional arg)
+  "
+If ARG is nil, then toggle the mode-line.
+If ARG is a positive integer, then set the mode-line-format to the default one.
+If ARG is a negative integer, then set the mode-line-format to NIL."
+  (interactive "P")
+  (pcase arg
+    ((pred null)
+     ;; (pcase mode-line-format
+     ;;   ((pred null)
+     ;;    (setq mode-line-format durand-default-mode-line-format)
+     ;;    (redisplay))
+     ;;   (_
+     ;;    (assert (not (null durand-default-mode-line-format)))
+     ;;    (setq mode-line-format '((:eval (propertized-buffer-identification " %b "))))
+     ;;    (redisplay)))
+     (pcase durand-mode-line-toggled
+       ((pred null)
+        ;; (setq mode-line-format '((:eval (propertized-buffer-identification " %b "))))
+        (setq mode-line-format nil)
+        (setf durand-mode-line-toggled (not durand-mode-line-toggled))
+        (force-mode-line-update))
+       (_
+        (setq mode-line-format durand-default-mode-line-format)
+        (setf durand-mode-line-toggled (not durand-mode-line-toggled))
+        (force-mode-line-update))))
+    ((and (pred integerp)
+          (pred (lambda (num) (>= num 0))))
+     (setq mode-line-format durand-default-mode-line-format)
+     (force-mode-line-update))
+    ((and (pred integerp)
+          (pred (lambda (num) (<= num 0))))
+     (setq mode-line-format nil)
+     (force-mode-line-update))
+    (_
+     (message "ARG should be either NIL, or an integer, but got %s" arg))))
+
+(global-set-key [?\s-m] 'durand-toggle-mode-line)
+
+(add-hook 'pdf-view-mode-hook (lambda () (durand-toggle-mode-line -1)))
+
+(set-face-attribute 'mode-line nil
+                    :background "gray10" :foreground "white" :height 1.3)
+
+;; (defface durand-custom-mode-face '((t (:foreground "red" :inherit mode-line)))
+;;   "Face used for displaying hydra presence")
+(defface durand-custom-mode-face '((t (:foreground "red")))
   "Face used for displaying hydra presence")
 
 (use-package lispy
@@ -670,7 +593,57 @@ R: read-only"))
 ;;   :config
 ;;   (define-key slime-mode-map [?\C-x ?\C-e] 'slime-eval-last-expression))
 
-;; (load-file "~/.emacs.d/my_packages/music/music.el")
+(load-file "~/.emacs.d/my_packages/music/music.el")
+
+;; (use-package emms
+;;   :ensure t
+;;   :config
+;;   (require 'emms-setup)
+;;   (require 'emms-player-mpd)
+;;   (emms-all) ; don't change this to values you see on stackoverflow questions if you expect emms to work
+;;   (setq emms-seek-seconds 5)
+;;   (setq emms-player-list '(emms-player-mpd))
+;;   (setq emms-info-functions '(emms-info-mpd))
+;;   (setq emms-player-mpd-server-name "localhost")
+;;   (setq emms-player-mpd-server-port "6601")
+;;   ;; (define-key global-map [?\s-m] nil)
+;;   ;; for mpc
+;;   (setq mpc-host "localhost:6601")
+;;   :bind
+;;   ("C-c m p" . emms)
+;;   ("C-c m b" . emms-smart-browse)
+;;   ("C-c m r" . emms-player-mpd-update-all-reset-cache)
+;;   ("C-c m k" . emms-previous)
+;;   ("C-c m j" . emms-next)
+;;   ("C-c m P" . emms-pause)
+;;   ("C-c m s" . emms-stop))
+
+;; (defun mpd/start-music-daemon ()
+;;   "Start MPD, connects to it and syncs the metadata cache."
+;;   (interactive)
+;;   (shell-command "mpd")
+;;   (mpd/update-database)
+;;   (emms-player-mpd-connect)
+;;   (emms-cache-set-from-mpd-all)
+;;   (message "MPD Started!")
+;;   (setq emms-playing-time-p nil
+;; 	emms-mode-line-active-p nil))
+;; (global-set-key (kbd "C-c m c") 'mpd/start-music-daemon)
+
+;; (defun mpd/kill-music-daemon ()
+;;   "Stops playback and kill the music daemon."
+;;   (interactive)
+;;   (emms-stop)
+;;   (call-process "killall" nil nil nil "mpd")
+;;   (message "MPD Killed!"))
+;; (global-set-key (kbd "C-c m d") 'mpd/kill-music-daemon)
+
+;; (defun mpd/update-database ()
+;;   "Updates the MPD database synchronously."
+;;   (interactive)
+;;   (call-process "mpc" nil nil nil "update")
+;;   (message "MPD Database Updated!"))
+;; (global-set-key (kbd "C-c m u") 'mpd/update-database)
 
 (use-package iedit :ensure t
   :defer 10
@@ -695,6 +668,15 @@ R: read-only"))
   (define-key pdf-view-mode-map (kbd "s-s") 'isearch-forward)
   (define-key pdf-view-mode-map [?j] (lambda () (interactive) (pdf-view-scroll-up-or-next-page 1)))
   (define-key pdf-view-mode-map [?k] (lambda () (interactive) (pdf-view-scroll-down-or-previous-page 1))))
+
+;; (use-package key-chord
+;;   :ensure t
+;;   :load-path "/Users/durand/.emacs.d/elpa/keychord/keychord.el"
+;;   :config
+;;   (key-chord-mode -1)
+;;   (key-chord-define-global ",;" 'general-hydra/body)
+;;   (setf key-chord-two-keys-delay 0.1)
+;;   (setf key-chord-one-key-delay 0.11))
 
 (add-to-list 'load-path (expand-file-name "my_packages/ideal" user-emacs-directory))
 
@@ -772,7 +754,7 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
 			      'char-to-string)))
     (mapconcat convert-function result "")))
 
-(load-file (expand-file-name "mu-el.el" user-emacs-directory))
+;; (load-file (expand-file-name "mu-el.el" user-emacs-directory))
 
 (use-package undo-tree
   :ensure t
@@ -780,18 +762,47 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
   :config
   (define-key global-map [remap undo] 'undo-tree-undo)
   (define-key global-map [?\C--] 'undo-tree-redo)
-  (define-key global-map [?\H-u] 'undo-tree-visualize))
+  (define-key global-map [?\H-u] 'undo-tree-visualize)
+  (define-key undo-tree-visualizer-mode-map (kbd "(") 'undo-tree-visualize-undo-to-x)
+  (define-key undo-tree-visualizer-mode-map (kbd ")") 'undo-tree-visualize-redo-to-x)
+  (setf undo-tree-enable-undo-in-region nil))
 
 (require 'org-mu4e)
 
 (setq org-mu4e-link-query-in-headers-mode nil)
 
 (org-link-set-parameters "mu4e" :follow #'org-mu4e-open
-			 :store #'org-mu4e-store-link)
+                         :store #'org-mu4e-store-link)
 
 (use-package org-pdfview
   :ensure t
-  :demand)
+  :demand
+  :config
+  ;; custom store link function to store the height as well
+  (defun org-pdfview-store-link ()
+    "Store a link to a pdfview buffer."
+    (when (eq major-mode 'pdf-view-mode)
+      ;; This buffer is in pdf-view-mode
+      (let* ((path buffer-file-name)
+             (page (pdf-view-current-page))
+             (height (let ((ori (substring-no-properties (pdf-misc-size-indication) 1)))
+                       (cond
+                        ((string= ori "Bot")
+                         "55")
+                        ((string= ori "Top")
+                         nil)
+                        (t
+                         (if (string-match "%%" ori)
+                             (replace-match "" nil nil ori)
+                           ori)))))
+             (real-height (when height
+                            (number-to-string (/ (string-to-number height) 100.0))))
+             (link (concat "pdfview:" path "::" (number-to-string page)
+                           (when height (concat "++" real-height)))))
+        (org-store-link-props
+         :type "pdfview"
+         :link link
+         :description path)))))
 
 (defun org-elfeed-store-link ()
   "Store a link to an elfeed search or entry buffer."
@@ -824,6 +835,186 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
  :follow 'org-elfeed-open
  :store 'org-elfeed-store-link)
 
+;; (defun sx-org-store-link (link)
+;;   "Store the search for org mode"
+;;   (interactive)
+;;   (when (derived-mode-p 'sx-question-link-mode)
+;;     (org-store-link-props
+;;      :type sx-question
+;;      :link)))
+
+(add-to-list 'org-file-apps '(directory . emacs))
+(add-to-list 'org-file-apps '("mp4" . "mpv --no-terminal --autofit=100%x100% --no-border --geometry=+0+-24 %s"))
+(add-to-list 'org-file-apps '("mkv" . "mpv --no-terminal --autofit=100%x100% --no-border --geometry=+0+-24 %s"))
+
+(use-package olivetti
+  :ensure t
+  :defer t
+  :config
+  (setq-default olivetti-body-width 90))
+
+;; (use-package sx :ensure t)
+
+(use-package define-word :ensure t
+  :config
+  (global-set-key [?\C-c ?d ?e] 'define-word-at-point)
+  (global-set-key [?\C-c ?d ?f] 'define-french-word-at-point)
+  (defun define-french-word-at-point ()
+    "Define the french word at point"
+    (interactive)
+    (define-word (substring-no-properties (thing-at-point 'word))
+      'wordreference)))
+
+;;;###autoload
+(defun define-word--parse-wordreference ()
+  "Parse output from wordreference site and return formatted list"
+  (save-match-data
+    (let (results beg part)
+      (while (re-search-forward "tr.*class=.*even.*?>" nil t)
+        (re-search-forward "strong>" nil t)
+        (setq part (buffer-substring-no-properties
+                    (point)
+                    (1- (re-search-forward "<" nil t))))
+        (unless (= 0 (length part))
+          (setq part (decode-coding-string (concat part " ") 'utf-8)))
+        (re-search-forward "<td>")
+        (setq middle (buffer-substring-no-properties
+                      (1- (re-search-forward "(" nil t))
+                      (re-search-forward ")" nil t)))
+        (unless (= 0 (length middle))
+          (setq middle (concat middle " ")))
+        (setq middle (replace-regexp-in-string
+                      "<[^>]*>\\([^<]*\\)<[^>]*>"
+                      "\\1"
+                      (decode-coding-string middle 'utf-8)))
+        (re-search-forward "ToWrd[^>]*>" nil t)
+        (setq def (decode-coding-string
+                   (buffer-substring-no-properties
+                    (point) (1- (re-search-forward "<" nil t)))
+                   'utf-8))
+        (push (concat (propertize part 'face 'define-word-face-1)
+                      (propertize middle 'face 'define-word-face-1)
+                      (propertize def 'face 'define-word-face-2))
+              results))
+      (setq results (nreverse results))
+      (cond ((= 0 (length results))
+             (message "0 definitions found"))
+            ;; ((and define-word-unpluralize
+            ;;       (cl-every (lambda (x) (string-match "[Pp]\\(?:lural\\|l\\.\\).*of \\(.*\\)\\." x))
+            ;;                 results))
+            ;;  (define-word (match-string 1 (car (last results))) 'wordnik))
+            (t
+             (when (> (length results) define-word-limit)
+               (setq results (cl-subseq results 0 define-word-limit)))
+             (mapconcat #'identity results "\n"))))))
+
+;;;###autoload
+(defun define-word-display-fn (res)
+  "Display RES in a separate buffer"
+  (interactive)
+  (with-current-buffer-window
+   "*define-word-results*"
+   nil nil
+   (insert res)))
+
+(use-package general
+  :ensure t
+  :defer t)
+
+(require 're-builder)
+(define-key reb-mode-map [?§] (lambda () (interactive) (insert "\\")))
+
+;; (use-package haskell-mode
+;;   :ensure t
+;;   :defer t
+;;   :config
+;;   (setq haskell-hoogle-command "~/.local/bin/hoogle")
+;;   (with-eval-after-load "haskell-mode"
+;;     (define-key haskell-cabal-mode-map (kbd "C-c C-c") 'haskell-compile)
+;;     (define-key haskell-mode-map (kbd "C-c C-c") 'haskell-compile)))
+
+(use-package cnfonts
+  :ensure t)
+
+(load-file (expand-file-name "cyphejor.el" user-emacs-directory))
+(require  'cyphejor)
+(setf cyphejor-rules
+      '(("emacs" "ε")
+        ("lisp" "λ")
+        ("mode" "")
+        ("org" "ω")
+        ("agenda" "α")
+        ("tex" "τ")
+        ("plain" "π")
+        ("latex" "Λ" :prefix)
+        ("buffer" "β")
+        ("dired" "δ")
+        ("messages" "M")
+        ("fundamental" "φ")
+        ("mu4e" "μ")
+        ("main" "Μ")
+        ("update" "υ")
+        ("headers" "tête")
+        ("help" "H")
+        ("pdf" "Π")
+        ("view" "v")
+        ("durand" "Δ")
+        ("interaction" "int")))
+(cyphejor-mode 1)
+
+;; (advice-remove 'mu4e-headers-search-bookmark  (lambda (&rest args) (cyphejor-mode 1)))
+;; (advice-remove 'mu4e-headers-search  (lambda (&rest args) (cyphejor-mode 1)))
+;; (advice-remove 'mu4e~headers-jump-to-maildir  (lambda (&rest args) (cyphejor-mode 1)))
+
+;; (ivy-read "HI: " '("ffa" "ffb" "ffba" "ffaa")
+;; 	  :unwind (lambda () (setq durand-changed nil)))
+
+;; (setq ivy-display-function (lambda (str) (save-excursion
+;; 					   (forward-line 1)
+;; 					   (insert str))))
+;; (setq ivy-display-function nil)
+
+;; (setq durand-changed nil)
+
+;; (defun durand-ivy-update-fn ()
+;;   "test"
+;;   (interactive)
+;;   (setf (ivy-state-collection ivy-last)
+;; 	(durand-ivy-cycle-collection
+;; 	 ivy--index))
+;;   (ivy--reset-state ivy-last)
+;;   (ivy-beginning-of-buffer)
+;;   (when (not durand-changed)
+;;     (setq durand-changed t)))
+
+;; (defun durand-ivy-update-fn ()
+;;   "test"
+;;   (interactive)
+;;   (cond
+;;    ((eq this-command 'ivy-next-line)
+;;     (setf (ivy-state-collection ivy-last)
+;; 	  (durand-ivy-cycle-collection 0)))
+;;    ((eq this-command 'ivy-previous-line)
+;;     (setf (ivy-state-collection ivy-last)
+;; 	  (durand-ivy-cycle-collection -2)))
+;;    (t
+;;     nil))
+;;   (when durand-changed
+;;     (ivy--reset-state ivy-last))
+;;   (when (not durand-changed)
+;;     (setq durand-changed t)))
+
+;; (defun durand-ivy-cycle-collection (arg)
+;;   (let* ((arg (or arg 1))
+;; 	 (col (ivy-state-collection ivy-last))
+;; 	 (len (length col))
+;; 	 (off-set (if durand-changed 0 1))
+;; 	 new-li)
+;;     (dotimes (ind len new-li)
+;;       (push
+;;        (nth (mod (- len ind off-set arg) len) col)
+;;        new-li))))
+
 ;; (require 'midnight)
 ;; (add-to-list 'clean-buffer-list-kill-never-regexps "elfeed")
 ;; (add-to-list 'clean-buffer-list-kill-never-regexps "mu4e")
@@ -833,5 +1024,32 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
 ;; (add-to-list 'clean-buffer-list-kill-buffer-names "*Calculator*")
 ;; (setq clean-buffer-list-delay-general 0.04)
 
-(require 're-builder)
-(define-key reb-mode-map [?§] (lambda () (interactive) (insert "\\")))
+(use-package js2-mode
+  :ensure t
+  :config
+  (require 'js2-mode)
+  (add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
+  (add-hook 'js2-mode-hook #'js2-imenu-extras-mode)
+  (define-key js2-mode-map (vector ?\M-.) nil)
+  (define-key js2-mode-map (kbd "C-k") #'js2r-kill)
+  (require 'js2-refactor)
+  (add-hook 'js2-mode-hook #'js2-refactor-mode)
+  (js2r-add-keybindings-with-prefix "C-c C-r"))
+
+(use-package js2-refactor
+  :ensure t)
+
+(use-package xref-js2
+  :ensure t
+  :config
+  (require 'js2-mode)
+  (require 'xref-js2)
+  (add-hook 'js2-mode-hook
+            (lambda ()
+              (add-hook 'xref-backend-functions #'xref-js2-xref-backend nil t))))
+
+(use-package emmet-mode
+  :ensure t
+  :config
+  (add-hook 'mhtml-mode-hook 'emmet-mode)
+  (add-hook 'css-mode-hook 'emmet-mode))

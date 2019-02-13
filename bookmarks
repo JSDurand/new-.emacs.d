@@ -2,37 +2,80 @@
 ;;; This format is meant to be slightly human-readable;
 ;;; nevertheless, you probably don't want to edit it.
 ;;; -*- End Of Bookmark File Format Version Stamp -*-
-(("sort.tex"
- (filename . "~/Desktop/Centre/TeX/Macros/test/sort.tex")
- (front-context-string . "\n\n\n\n\\seq a y g t")
- (rear-context-string . "arily give up...")
- (position . 1486))
-("jotdown.tex"
- (filename . "~/Desktop/Centre/Mes notes/Les papiers/NCTS thèse/Report/jotdown.tex")
+(("ideal"
+ (filename . "~/.emacs.d/my_packages/ideal/ideal.el")
+ (front-context-string . "\n  (\"RET r\" rect")
+ (rear-context-string . "o\") :color blue)")
+ (position . 25319))
+("scratch.tex"
+ (filename . "~/Desktop/Centre/Mes notes/Les papiers/jouer/scratch.tex")
  (front-context-string)
- (rear-context-string . "em in question!\n")
- (position . 5188))
-("org-capture-last-stored"
- (filename . "~/org/notes.org")
- (front-context-string . "** Update music ")
- (rear-context-string . "es]]\n\n So cool!\n")
- (position . 14113))
-("[Greco_S.,_Strano_R.]_Complete_Intersections(b-ok.xyz).pdf"
- (filename . "~/Downloads/[Greco_S.,_Strano_R.]_Complete_Intersections(b-ok.xyz).pdf")
+ (rear-context-string . " representable.\n")
+ (position . 3950))
+("topologie et cohomologie.tex"
+ (filename . "~/Desktop/Centre/Mes notes/Les papiers/jouer/topologie et cohomologie.tex")
+ (front-context-string)
+ (rear-context-string . "nt à $\\cov(T)$.\n")
+ (position . 977))
+("hubbard"
+ (filename . "~/Downloads/[John_H._Hubbard]_Teichmüller_Theory_And_Applicat(b-ok.cc).pdf")
  (position . 1)
- (page . 9)
+ (page . 23)
  (slice)
  (size . fit-width)
- (origin 0.0 . 0.2553191489361702)
+ (origin 0.0 . 0.0)
  (handler . pdf-view-bookmark-jump-handler))
+("français"
+ (filename . "~/org/français.org")
+ (front-context-string . "* Liste de mots ")
+ (rear-context-string . "WORD) %MEANING\n\n")
+ (position . 145))
+("NCTS"
+ (filename . "~/Desktop/Centre/Mes notes/Les papiers/NCTS thèse/")
+ (front-context-string . ".DS_Store\n  drwx")
+ (rear-context-string . "0K  4 aoû 00:52 ")
+ (position . 284))
+("account.org"
+ (filename . "~/org/account/account.org")
+ (front-context-string . "#+COLUMNS: %ITEM")
+ (rear-context-string)
+ (position . 1))
+("wiki.org"
+ (filename . "~/org/wiki.org")
+ (front-context-string . "* Abstractions  ")
+ (rear-context-string . "o movie video]]\n")
+ (position . 16275))
+("grothendieck"
+ (filename . "~/Desktop/Centre/PDF/Des sujets/Catégories/Technique de descente et théorèmes d’existence en géométrie algébrique.pdf")
+ (position . 1)
+ (page . 3)
+ (slice)
+ (size . fit-width)
+ (origin 0.0 . 0.036511156186612576)
+ (handler . pdf-view-bookmark-jump-handler))
+("today"
+ (filename . "~/org/aujourdhui.org")
+ (front-context-string . "* TODO Martin [1")
+ (rear-context-string . "DO(t) | DONE(d)\n")
+ (position . 64))
+("Downloads"
+ (filename . "~/Downloads/")
+ (front-context-string . ".DS_Store\n  -rw-")
+ (rear-context-string . "0K 21 aoû 23:06 ")
+ (position . 251))
+("org-refile-last-stored"
+ (filename . "~/org/aujourdhui.org")
+ (front-context-string . "** TODO [#A] Wri")
+ (rear-context-string . "très important.\n")
+ (position . 10771))
+("org-capture-last-stored"
+ (filename . "~/org/notes.org")
+ (front-context-string . "** PENDING Rion_")
+ (rear-context-string . "es fonctions L\n\n")
+ (position . 14185))
 ("university-plan.org"
  (filename . "~/org/university-plan/university-plan.org")
  (front-context-string . "* Purpose\n  I sh")
- (rear-context-string)
- (position . 1))
-("tex.org"
- (filename . "~/.emacs.d/my_packages/tex.org")
- (front-context-string . "* Purpose\n  I wa")
  (rear-context-string)
  (position . 1))
 ("setting.org"
@@ -40,29 +83,9 @@
  (front-context-string . "** my hydras\n   ")
  (rear-context-string . "))\n   #+END_SRC\n")
  (position . 23296))
-("overconvergent.tex"
- (filename . "~/Desktop/Centre/Mes notes/Les papiers/NCTS thèse/Report/overconvergent.tex")
- (front-context-string . "\\proof\nOne just ")
- (rear-context-string . "verconvergent.\n\n")
- (position . 19808))
-("chapter5.tex"
- (filename . "~/Desktop/Centre/Mes notes/Les papiers/NCTS thèse/Report/chapter5.tex")
- (front-context-string . "\\heading 5.2.1. ")
- (rear-context-string . "portant point!\n\n")
- (position . 4449))
 ("note"
  (filename . "~/org/notes.org")
  (front-context-string . "#+title: Quick N")
- (rear-context-string)
- (position . 1))
-("ideal.el"
- (filename . "~/elisp_packages/ideal/ideal.el")
- (front-context-string . "(defun durand-bo")
- (rear-context-string . "keyboard-quit)\n\n")
- (position . 651))
-("account-2018-8.org"
- (filename . "~/org/account/account-2018-8.org")
- (front-context-string . "* Accounts  \n** ")
  (rear-context-string)
  (position . 1))
 )

@@ -5,13 +5,17 @@
  'nimbus-tex-im
  '(ansi-color-names-vector ["#454545" "#d65946" "#6aaf50" "#baba36" "#598bc1" "#ab75c3" "#68a5e9" "#bdbdb3"]))
 
+(provide-theme 'nimbus-tex-im)
+
 (custom-theme-set-faces
  'nimbus-tex-im
- '(cursor ((t (:foreground "black" :background "#f57e00"))))
+ '(face-attribute ((t (:foreground "black" :background "#f57e00"))))
+ '(cursor ((t (:background "#f57e00"))))
  '(fringe ((t (:background "gray11" :bold nil :underline nil))))
  '(link ((t (:foreground "#86b5e8" :underline t))))
  '(link-visited ((t (:foreground "#608079" :underline t))))
- '(highlight ((t (:foreground "gray10" :background "#9ccc65"))))
+ ;; '(highlight ((t (:foreground "gray10" :background "#9ccc65"))))
+ '(highlight ((t (:foreground "gray10" :background "#86b5e8"))))
  '(region ((t (:foreground "gray10" :background "#bdbdb3"))))
  '(shadow ((t (:foreground "#858585"))))
  '(tooltip ((t (:background "#bdbdb3" :foreground "gray10"))))
@@ -28,8 +32,8 @@
  '(font-lock-warning-face ((t (:foreground "#df9522" :bold t))))
  '(font-lock-variable-name-face ((t (:foreground "#baba36"))))
  '(font-lock-doc-face ((t (:foreground "#8fbc8f"))))
- '(mode-line-inactive ((nil (:background "gray" :foreground "black"))))
- '(mode-line ((nil (:background "light blue" :foreground "black"))))
+ '(mode-line-inactive ((nil (:background "gray10" :foreground "white"))))
+ '(mode-line ((nil (:background "gray10" :foreground "white"))))
  '(header-line ((t (:background "#454545" :foreground "#bdbdb3"))))
  '(button ((t (:foreground "#68a5e9" :underline t))))
  '(isearch ((t (:background "#058945" :foreground "white"))))
@@ -172,7 +176,7 @@
  '(font-latex-doctex-preprocessor-face ((t (:inherit (font-latex-doctex-documentation-face font-lock-preprocessor-face)))))
  '(font-latex-italic-face ((t (:inherit italic :foreground "#058945"))))
  '(font-latex-math-face ((t (:foreground "#35a0ed"))))
- ;; '(tex-math ((t (:foreground "#35a0ed"))))
+ '(tex-math ((t (:foreground "DarkGoldenrod3"))))
  '(font-latex-sectioning-5-face ((t (:foreground "#f5af33" :weight bold))))
  '(font-latex-sedate-face ((t (:foreground "#e84828"))))
  '(font-latex-slide-title-face ((t (:inherit font-lock-type-face :weight bold :height 1.2))))
@@ -208,5 +212,3 @@
  '(custom-visibility ((t (:inherit button))))
  '(widget-field ((t (:foreground "#bdbdb3" :background "#656565"))))
  '(default ((t (:foreground "#bdbdb3" :background "gray10")))))
-
-(provide-theme 'nimbus-tex-im)

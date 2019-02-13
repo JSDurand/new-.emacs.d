@@ -3,39 +3,101 @@
   "Command to compile TeX
 If TEX-ROOT-FILE-NAME is non-nil, use it as the file name to compile,
 else use the current file name.
-I found using eshell better, as it allows to interact with xetex directly,
-and correct the result (temporarily) live in the shell."
+I found using start-process better, as it is more minimal."
   (interactive)
-  (let ((fnb (or tex-root-file-name
-		 (file-name-base)))
-	(durand-tex-command (or (and (string= major-mode "plain-tex-mode")
-				     "xetex")
-				"xelatex")))
-    (progn
-      (eshell)
-      (insert (format "%s %s" durand-tex-command (shell-quote-argument fnb)))
-      (eshell-send-input)
-      ;; (define-key eshell-mode-map [f9] (lambda ()
-      ;; 					 (interactive)
-      ;; 					 (tex-switcher (buffer-file-name (other-buffer)))))
-      (define-key eshell-mode-map [f9] 'tex-action-eshell))))
+  (unless (derived-mode-p 'tex-mode)
+    (user-error "Not in a tex buffer"))
+  (let* ((fnb (or tex-root-file-name
+                  (file-name-base)))
+         (bfn (buffer-file-name))
+         (durand-tex-command (or (and (string= major-mode "plain-tex-mode") "xetex")
+                                 "xelatex"))
+         (output-bn "*durand-tex*")
+         (default-directory (or (and bfn (file-name-directory bfn))
+                                (error "Ce tampon n'est pas associé à un fichier")))
+         (proc (progn
+                 (when (get-buffer output-bn)
+                   (kill-buffer output-bn))
+                 (call-process "texfot" nil "*durand-tex*" t durand-tex-command fnb))))
+    (setf tex-output-bn output-bn)
+    (tex-display-or-kill-temp-buffer nil output-bn))
+  (define-key plain-tex-mode-map [f9] 'tex-first-pdf)
+  (setf durand-tex-action 'tex-first-pdf)
+  (setf tex-changed t))
 
-(setq tex-root-file-name nil)
-(setq working-name nil)
+;;;###autoload
+(defun tex-display-or-kill-temp-buffer (&optional arg bn)
+  "display and fit to size the buffer BN
+If ARG is non-nil, delete the buffer BN"
+  (interactive (list current-prefix-arg nil))
+  (let ((bn (or bn tex-output-bn)))
+    (cond
+     (arg
+      (when (get-buffer bn)
+        (delete-windows-on bn)
+        (kill-buffer bn)))
+     ((and bn
+           (get-buffer bn)
+           (buffer-live-p (get-buffer bn))
+           (get-buffer-window bn))
+      (delete-windows-on bn))
+     ((and bn (get-buffer bn) (buffer-live-p (get-buffer bn)))
+      (with-current-buffer bn
+        (goto-char (point-min)))
+      (display-buffer bn)
+      (resize-temp-buffer-window (get-buffer-window bn)))
+     ((null bn)
+      (message "`tex-output-bn' is nil."))
+     (t
+      (message "No buffer named %s." bn)))))
+
+;; using eshell is not very good.
+;; (defun tex ()
+;;   "Command to compile TeX
+;; If TEX-ROOT-FILE-NAME is non-nil, use it as the file name to compile,
+;; else use the current file name.
+;; I found using eshell better, as it allows to interact with xetex directly,
+;; and correct the result (temporarily) live in the shell."
+;;   (interactive)
+;;   (let ((fnb (or tex-root-file-name
+;;                  (file-name-base)))
+;;         (durand-tex-command (or (and (string= major-mode "plain-tex-mode")
+;;                                      "texfot xetex")
+;;                                 "xelatex")))
+;;     (progn
+;;       (eshell)
+;;       (insert (format "%s %s" durand-tex-command (shell-quote-argument fnb)))
+;;       (eshell-send-input)
+;;       ;; (define-key eshell-mode-map [f9] (lambda ()
+;;       ;; 					 (interactive)
+;;       ;; 					 (tex-switcher (buffer-file-name (other-buffer)))))
+;;       (define-key eshell-mode-map [f9] 'tex-action-eshell))))
+
+(defvar tex-root-file-name nil
+  "Root file for tex")
+(defvar working-name nil
+  "working file name for tex")
+(defvar tex-changed nil
+  "Non-nil if just used `tex'")
+(defvar tex-output-bn nil
+  "The name of the buffer used for displaying the output of tex process")
+
+(make-variable-buffer-local 'tex-output-bn)
+(make-variable-buffer-local 'tex-changed)
 
 ;;;###autoload
 (defun tex-action-eshell ()
   "The function invoked when in eshell during a tex-working cycle"
   (interactive)
   (let* ((full-name (buffer-file-name (other-buffer)))
-	 (full-pdf-name (concat (or tex-root-file-name
-				    (file-name-sans-extension full-name))
-				".pdf"))
-	 (pdf-name (or (and tex-root-file-name
-			    (concat tex-root-file-name ".pdf"))
-		       (file-name-nondirectory full-pdf-name))))
+         (full-pdf-name (concat (or tex-root-file-name
+                                    (file-name-sans-extension full-name))
+                                ".pdf"))
+         (pdf-name (or (and tex-root-file-name
+                            (concat tex-root-file-name ".pdf"))
+                       (file-name-nondirectory full-pdf-name))))
     (if (get-buffer pdf-name)
-	(switch-to-buffer pdf-name)
+        (switch-to-buffer pdf-name)
       (find-file full-pdf-name))
     (tex-pdf-prepare)))
 
@@ -43,35 +105,75 @@ and correct the result (temporarily) live in the shell."
 (defun tex-pdf-prepare ()
   "Preparative work needed in pdf buffer"
   (revert-buffer)
-  (define-key pdf-view-mode-map [f9] 'tex-action-pdf))
+  (delete-other-windows)
+  (define-key pdf-view-mode-map [f9] 'tex-action-pdf)
+  (setf durand-tex-action 'tex-action-pdf))
 
 ;;;###autoload
 (defun tex-action-pdf ()
   "Action invoked in pdf buffer in a tex working cycle"
   (interactive)
-  (switch-to-buffer
-   (or working-name
-       (concat (file-name-sans-extension (buffer-name)) ".tex")))
+  (switch-to-buffer (or working-name
+                        (concat (file-name-sans-extension (buffer-name)) ".tex")))
   (advice-add 'save-buffer :before 'save-tex-advice)
   (define-key plain-tex-mode-map [f9] 'tex-tex-go-to-pdf)
-  (define-key latex-mode-map [f9] 'tex-tex-go-to-pdf))
+  (define-key latex-mode-map [f9] 'tex-tex-go-to-pdf)
+  (setf durand-tex-action 'tex-pdf-go-to-tex-or-vice-versa))
+
+;;;###autoload
+(defun tex-first-pdf ()
+  "First time switching to pdf"
+  (interactive)
+  (let ((corresponding-pdf (concat (or tex-root-file-name
+                                      (file-name-sans-extension (buffer-name)))
+                                  ".pdf")))
+    (cond
+     ((get-buffer corresponding-pdf)
+      (switch-to-buffer corresponding-pdf)
+      (tex-pdf-prepare))
+     ((file-exists-p corresponding-pdf)
+      (find-file corresponding-pdf)
+      (tex-pdf-prepare))
+     (t
+      (message "Cannot find pdf named %s" corresponding-pdf)))))
 
 ;;;###autoload
 (defun tex-tex-go-to-pdf ()
   "Go to the corresponding pdf file to the current tex file"
   (interactive)
   (let ((corresponding-pdf (concat (or tex-root-file-name
-				       (file-name-sans-extension (buffer-name)))
-				   ".pdf")))
-    (switch-to-buffer corresponding-pdf)
-    (define-key pdf-view-mode-map [f9] 'tex-pdf-go-to-tex)))
+                                       (file-name-sans-extension (buffer-name)))
+                                   ".pdf")))
+    (cond
+     ((and corresponding-pdf (get-buffer corresponding-pdf))
+      (switch-to-buffer corresponding-pdf))
+     ((file-exists-p corresponding-pdf)
+      (find-file corresponding-pdf))
+     (t
+      (user-error "Cannot find pdf named %s" corresponding-pdf)))
+    (define-key pdf-view-mode-map [f9] 'tex-pdf-go-to-tex)
+    (setf durand-tex-action 'tex-pdf-go-to-tex-or-vice-versa)))
+
+;;;###autoload
+(defun tex-pdf-go-to-tex-or-vice-versa ()
+  "Either go to pdf or go to tex"
+  (interactive)
+  (cond
+   (current-prefix-arg
+    (tex-display-or-kill-temp-buffer))
+   ((derived-mode-p 'pdf-view-mode)
+    (tex-pdf-go-to-tex))
+   ((derived-mode-p 'tex-mode)
+    (tex-tex-go-to-pdf))
+   (t
+    (user-error "Not in a pdf file or tex file."))))
 
 ;;;###autoload
 (defun tex-pdf-go-to-tex ()
   "Go to the corresponding tex file to the current pdf file"
   (interactive)
   (switch-to-buffer (or working-name
-			(concat (file-name-sans-extension (buffer-name)) ".tex"))))
+                        (concat (file-name-sans-extension (buffer-name)) ".tex"))))
 
 ;;;###autoload
 (defun tex-set-up-root (arg)
@@ -79,9 +181,9 @@ and correct the result (temporarily) live in the shell."
   (interactive "P")
   (if (null arg)
       (progn (setq tex-root-file-name (file-name-base))
-	     (message (format "tex-root-file-name set to %s" tex-root-file-name)))
+             (message (format "tex-root-file-name set to %s" tex-root-file-name)))
     (progn (setq tex-root-file-name nil)
-	   (message (format "tex-root-file-name set to %s" tex-root-file-name)))))
+           (message (format "tex-root-file-name set to %s" tex-root-file-name)))))
 
 ;;;###autoload
 (defun tex-set-up-working (arg)
@@ -89,33 +191,33 @@ and correct the result (temporarily) live in the shell."
   (interactive "P")
   (if (null arg)
       (progn (setq working-name (buffer-name))
-	     (message (format "working-name set to %s" working-name)))
+             (message (format "working-name set to %s" working-name)))
     (progn (setq working-name nil)
-	   (message (format "working-name set to %s" working-name)))))
+           (message (format "working-name set to %s" working-name)))))
 
 ;;;###autoload
-(defun save-tex-advice ()
+(defun save-tex-advice (&rest arg)
   (interactive)
   (cond ((string-equal major-mode "plain-tex-mode")
-	 (progn
-	   (define-key plain-tex-mode-map [f9] 'tex)
-	   (advice-remove 'save-buffer 'save-tex-advice)))
-	((string-equal major-mode "latex-mode")
-	 (progn
-	   (define-key latex-mode-map [f9] 'tex)
-	   (advice-remove 'save-buffer 'save-tex-advice)))))
+         (progn
+           (define-key plain-tex-mode-map [f9] 'tex)
+           (advice-remove 'save-buffer 'save-tex-advice)))
+        ((string-equal major-mode "latex-mode")
+         (progn
+           (define-key latex-mode-map [f9] 'tex)
+           (advice-remove 'save-buffer 'save-tex-advice)))))
 
 (defvar tex-heading-list nil
   "The list of headings used in tex files")
 
 (setq tex-heading-list '("heading"
-			 "imp"
-			 "thm"
-			 "sec"
-			 "secc"
-			 "chap"
-			 "tit"
-			 "lem"))
+                         "imp"
+                         "thm"
+                         "sec"
+                         "secc"
+                         "chap"
+                         "tit"
+                         "lem"))
 ;;;###autoload
 ;; (defun tex-re-build (head)
 ;;   "Build the regexp to match against HEAD"
@@ -140,17 +242,18 @@ and correct the result (temporarily) live in the shell."
 
 ;; The special fontification should be done by `font-lock-add-keywords' instead.
 (font-lock-add-keywords 'plain-tex-mode `((,(concat
-					     "^\\\\\\(?:"
-					     (mapconcat #'identity
-							tex-heading-list
-							"\\|")
-					     "\\) \\([^\n]+\\)$")
-					   1 'tex-big-face t))
-			'append)
+                                             "^\\\\\\(?:"
+                                             (mapconcat #'identity
+                                                        tex-heading-list
+                                                        "\\|")
+                                             "\\) \\([^\n]+\\)$")
+                                           1 'tex-big-face t))
+                        'append)
 
 (with-eval-after-load "tex-mode"
   (define-key plain-tex-mode-map [?\§] '(lambda () "remap to type escape key" (interactive) (insert "\\")))
   (define-key plain-tex-mode-map [f9] 'tex)
+  (define-key plain-tex-mode-map [f11] 'tex-display-or-kill-temp-buffer)
   (define-key plain-tex-mode-map [f7] 'tex-set-up-root)
   (define-key plain-tex-mode-map [f8] 'tex-set-up-working)
   (define-key plain-tex-mode-map [?\)] 'end-exit-paren)
@@ -162,12 +265,21 @@ and correct the result (temporarily) live in the shell."
   (define-key plain-tex-mode-map [?\C-c ?d] 'insert-def)
   (define-key plain-tex-mode-map [?\C-c ?o] 'one-def)
   (define-key plain-tex-mode-map [?\C-c ?t] 'two-def)
+  (define-key plain-tex-mode-map [?\C-c ?\C-c] '(lambda () (interactive) (save-buffer 0) (tex)))
   (define-key plain-tex-mode-map [?\C-c ?r] 'read-tex-complete)
   (define-key plain-tex-mode-map [?\C-c ?\C-o] 'make-blank-space)
   (define-key plain-tex-mode-map [?\C-c ?\C-\S-o] '(lambda () (interactive) (make-blank-space 4)))
   (define-key plain-tex-mode-map [?\M-'] 'abbrev-prefix-mark)
   (define-key plain-tex-mode-map [?ù] abbrev-prefix-map)
-  (define-key plain-tex-mode-map [tab] 'completion-at-point))
+  (define-key plain-tex-mode-map [tab] 'completion-at-point)
+
+  (add-hook 'tex-mode-hook 'olivetti-mode)
+
+  ;; (remove-hook 'tex-mode-hook
+  ;;           (lambda ()
+  ;;             (set-fill-column 90)
+  ;;             (auto-fill-mode 1)))
+  )
 
 (with-eval-after-load "latex-mode"
   (define-key latex-mode-map [?\§] '(lambda () "remap to type escape key" (interactive) (insert "\\")))
@@ -268,6 +380,7 @@ and correct the result (temporarily) live in the shell."
 (define-key abbrev-prefix-map "(" (lambda () (interactive) (insert "\\subset")))
 (define-key abbrev-prefix-map "]" (lambda () (interactive) (insert "\\supseteq")))
 (define-key abbrev-prefix-map "[" (lambda () (interactive) (insert "\\subseteq")))
+(define-key abbrev-prefix-map "{" (lambda () (interactive) (insert "\\left\\{\\right\\}") (backward-char 8)))
 (define-key abbrev-prefix-map "I" (lambda () (interactive) (insert "\\infty")))
 (define-key abbrev-prefix-map "i" (lambda () (interactive) (insert "\\in")))
 (define-key abbrev-prefix-map "A" (lambda () (interactive) (insert "\\forall")))
@@ -309,6 +422,7 @@ and correct the result (temporarily) live in the shell."
 (define-key abbrev-prefix-map "h" (lambda () (interactive) (insert "\\eta")))
 (define-key abbrev-prefix-map "z" (lambda () (interactive) (insert "\\zeta")))
 (define-key abbrev-prefix-map "e" (lambda () (interactive) (insert "\\epsilon")))
+(define-key abbrev-prefix-map "E" (lambda () (interactive) (insert "\\exists")))
 (define-key abbrev-prefix-map "D" (lambda () (interactive) (insert "\\Delta")))
 (define-key abbrev-prefix-map "d" (lambda () (interactive) (insert "\\delta")))
 (define-key abbrev-prefix-map "g" (lambda () (interactive) (insert "\\gamma")))
@@ -387,43 +501,43 @@ and correct the result (temporarily) live in the shell."
 ;;   ("g" (insert "\\gamma"))
 ;;   ("b" (insert "\\beta")))
 
-(load-file (expand-file-name "my_packages/tex-complete.el" user-emacs-directory))
+;; (load-file (expand-file-name "my_packages/tex-complete.el" user-emacs-directory))
 
 ;;;###autoload
 (defun durand-delete-pair ()
   "Delete the matching pair"
   (interactive)
   (cond (view-mode ; if in view-mode, then scroll down
-	 (View-scroll-page-backward))
-	((region-active-p) ; if the region is active, then do the original thing
-	 (delete-backward-char 1))
-	((memq (char-before) '(?\( ?\[ ?\{ ?\$))
-	 (save-excursion
-	   (backward-char 1)
-	   (ignore-errors
-	     (forward-sexp 1)
-	     (delete-char -1)))
-	 (delete-char -1))
-	(t
-	 (delete-char -1))))
+         (View-scroll-page-backward))
+        ((region-active-p) ; if the region is active, then do the original thing
+         (delete-backward-char 1))
+        ((memq (char-before) '(?\( ?\[ ?\{))
+         (save-excursion
+           (backward-char 1)
+           (ignore-errors
+             (forward-sexp 1)
+             (delete-char -1)))
+         (delete-char -1))
+        (t
+         (delete-char -1))))
 
 ;;;###autoload
 (defun end-exit-paren ()
   "Use closing pasenthesis to exit the parenthesis"
   (interactive)
   (let ((ch (char-after nil))
-	(ch-list '(?\) ?\} ?\] ?\$)))
+        (ch-list '(?\) ?\} ?\] ?\$)))
     (cond ((memq ch ch-list) (forward-char))
-	  (t (insert ")")))))
+          (t (insert ")")))))
 
 ;;;###autoload
 (defun open-back-paren ()
   "Use closing pasenthesis to exit the parenthesis"
   (interactive)
   (let ((ch (char-before nil))
-	(ch-list '(?\) ?\} ?\] ?\$)))
+        (ch-list '(?\) ?\} ?\] ?\$)))
     (cond ((memq ch ch-list) (backward-char))
-	  (t (insert "ç")))))
+          (t (insert "ç")))))
 
 ;;;###autoload
 (defun open-paren ()
@@ -454,27 +568,27 @@ and correct the result (temporarily) live in the shell."
   "my function to insert defs of tex documents easily"
   (interactive)
   (let ((name (read-string "Enter macro name: "))
-	(body (buffer-substring-no-properties (mark) (point))))
+        (body (buffer-substring-no-properties (mark) (point))))
     (if (use-region-p)
-	(progn (kill-region (region-beginning) (region-end))
-	       (insert (format "\\%s" name))
-	       (save-excursion
-		 (goto-char (point-min))
-		 (setq temp (search-forward-regexp "^\\\\def" nil t))
-		 (when temp
-		   (message "Macro inserted.")
-		   (beginning-of-line)
-		   (while (re-search-forward "^\\\\def" nil t)
-		     (re-search-forward "{" nil t)
-		     (backward-char 1)
-		     (forward-sexp))
-		   (open-line 1)
-		   (forward-char 1)
-		   (insert (format "\\def\\%s{%s}" name body))))
-	       (if (not temp)
-		   (save-excursion (message "No defs found, insert in the above paragragh.")
-				   (backward-paragraph)
-				   (insert (format "\n\\def\\%s{%s}" name body)))))
+        (progn (kill-region (region-beginning) (region-end))
+               (insert (format "\\%s" name))
+               (save-excursion
+                 (goto-char (point-min))
+                 (setq temp (search-forward-regexp "^\\\\def" nil t))
+                 (when temp
+                   (message "Macro inserted.")
+                   (beginning-of-line)
+                   (while (re-search-forward "^\\\\def" nil t)
+                     (re-search-forward "{" nil t)
+                     (backward-char 1)
+                     (forward-sexp))
+                   (open-line 1)
+                   (forward-char 1)
+                   (insert (format "\\def\\%s{%s}" name body))))
+               (if (not temp)
+                   (save-excursion (message "No defs found, insert in the above paragragh.")
+                                   (backward-paragraph)
+                                   (insert (format "\n\\def\\%s{%s}" name body)))))
       (message "Please activate region which contains the definiton before inserting the def"))))
 
 ;;;###autoload
@@ -483,50 +597,50 @@ and correct the result (temporarily) live in the shell."
   (interactive)
   (let ((name (read-string "Enter macro name: ")))
     (progn (insert (format "\\%s" (downcase name)))
-	   (save-excursion
-	     (goto-char (point-min))
-	     (setq temp (search-forward-regexp "^\\\\def" nil t))
-	     (when temp
-		   (message "Macro inserted.")
-		   (beginning-of-line)
-		   (while (re-search-forward "^\\\\def" nil t)
-		     (re-search-forward "{" nil t)
-		     (backward-char 1)
-		     (forward-sexp))
-		   (open-line 1)
-		   (forward-char 1)
-		   (insert (format "\\defonetext{%s}" name))))
-	   (if (not temp)
-	       (save-excursion (message "No defs found, insert in the above paragragh.")
-			       (backward-paragraph)
-			       (insert (format "\n\\defonetext{%s}" name)))))))
+           (save-excursion
+             (goto-char (point-min))
+             (setq temp (search-forward-regexp "^\\\\def" nil t))
+             (when temp
+                   (message "Macro inserted.")
+                   (beginning-of-line)
+                   (while (re-search-forward "^\\\\def" nil t)
+                     (re-search-forward "{" nil t)
+                     (backward-char 1)
+                     (forward-sexp))
+                   (open-line 1)
+                   (forward-char 1)
+                   (insert (format "\\defonetext{%s}" name))))
+           (if (not temp)
+               (save-excursion (message "No defs found, insert in the above paragragh.")
+                               (backward-paragraph)
+                               (insert (format "\n\\defonetext{%s}" name)))))))
 
 ;;;###autoload
 (defun two-def ()
   "insert deftwotext instead of def"
   (interactive)
   (let ((name (downcase (read-string "Enter macro name: ")))
-	(body (buffer-substring-no-properties (mark) (point))))
+        (body (buffer-substring-no-properties (mark) (point))))
     (if (use-region-p)
-	(progn (kill-region (region-beginning) (region-end))
-	       (insert (format "\\%s" name))
-	       (save-excursion
-		 (goto-char (point-min))
-		 (setq temp (search-forward-regexp "^\\\\def" nil t))
-		 (when temp
-		   (message "Macro inserted.")
-		   (beginning-of-line)
-		   (while (re-search-forward "^\\\\def" nil t)
-		     (re-search-forward "{" nil t)
-		     (backward-char 1)
-		     (forward-sexp))
-		   (open-line 1)
-		   (forward-char 1)
-		   (insert (format "\\deftwotext{%s}{%s}" name body))))
-	       (if (not temp)
-		   (save-excursion (message "No defs found, insert in the above paragragh.")
-				   (backward-paragraph)
-				   (insert (format "\n\\deftwotext{%s}{%s}" name body)))))
+        (progn (kill-region (region-beginning) (region-end))
+               (insert (format "\\%s" name))
+               (save-excursion
+                 (goto-char (point-min))
+                 (setq temp (search-forward-regexp "^\\\\def" nil t))
+                 (when temp
+                   (message "Macro inserted.")
+                   (beginning-of-line)
+                   (while (re-search-forward "^\\\\def" nil t)
+                     (re-search-forward "{" nil t)
+                     (backward-char 1)
+                     (forward-sexp))
+                   (open-line 1)
+                   (forward-char 1)
+                   (insert (format "\\deftwotext{%s}{%s}" name body))))
+               (if (not temp)
+                   (save-excursion (message "No defs found, insert in the above paragragh.")
+                                   (backward-paragraph)
+                                   (insert (format "\n\\deftwotext{%s}{%s}" name body)))))
       (message "Please activate region which contains the definiton before inserting the def"))))
 
 ;;;###autoload
@@ -537,23 +651,23 @@ and correct the result (temporarily) live in the shell."
     (beginning-of-buffer)
     (let ((res '()))
       (while (re-search-forward "^\\\\def" nil t)
-	(let* ((start-pos (point))
-	       (s (cons
-		   (buffer-substring-no-properties
-		    (- (point) 4)
-		    (progn
-		      (re-search-forward "{" nil t)
-		      (backward-char)
-		      (cdr (bounds-of-thing-at-point 'sexp))))
-		   start-pos)))
-	  (setq res (cons s res))))
+        (let* ((start-pos (point))
+               (s (cons
+                   (buffer-substring-no-properties
+                    (- (point) 4)
+                    (progn
+                      (re-search-forward "{" nil t)
+                      (backward-char)
+                      (cdr (bounds-of-thing-at-point 'sexp))))
+                   start-pos)))
+          (setq res (cons s res))))
       (nreverse res))))
 
 ;;;###autoload
 (defun find-macro-name (x)
   "Find the name of a tex macro"
   (let* ((ind (string-match "{" x))
-	 (content (substring x 0 ind)))
+         (content (substring x 0 ind)))
     (cond
      ((string-equal content "\\defonetext")
       (concat "\\" (downcase (substring x (+ 1 ind) (string-match "}" x)))))
@@ -566,7 +680,7 @@ and correct the result (temporarily) live in the shell."
 (defun find-macro-content (x)
   "Find the content of a tex macro"
   (let* ((ind (string-match "{" x))
-	 (content (substring x 0 ind)))
+         (content (substring x 0 ind)))
     (cond
      ((string-equal content "\\defonetext")
       (substring x (1+ ind) -1))
@@ -606,16 +720,16 @@ assuming all defs come at the beginning of line"
   (setq tex-def-alist (get-defs))
   (setq tex-old-pos (point))
   (ivy-read "defs: " (mapcar #'car tex-def-alist)
-	    :action '(1
-		      ("o" (lambda (x)
-			     (interactive)
-			     (insert (format "%s" (find-macro-name x))))
-		       "Insert Macro Name"))
-	    :update-fn #'tex-follow-up
-	    :unwind (lambda ()
-		      (goto-char tex-old-pos)
-		      (setq tex-def-alist nil))
-	    :keymap tex-def-map))
+            :action '(1
+                      ("o" (lambda (x)
+                             (interactive)
+                             (insert (format "%s" (find-macro-name x))))
+                       "Insert Macro Name"))
+            :update-fn #'tex-follow-up
+            :unwind (lambda ()
+                      (goto-char tex-old-pos)
+                      (setq tex-def-alist nil))
+            :keymap tex-def-map))
 
 (defvar tex-def-alist nil
   "An associative list to store the defs found in a tex file.")
@@ -719,15 +833,33 @@ assuming all defs come at the beginning of line"
   (interactive "P")
   (if (null arg)
       (progn
-	(beginning-of-line)
-	(open-line 3)
-	(forward-line)
-	(indent-according-to-mode))
+        (beginning-of-line)
+        (open-line 3)
+        (forward-line)
+        (indent-according-to-mode))
     (progn
       (end-of-line)
       (open-line 3)
       (forward-line 2)
       (indent-according-to-mode))))
+
+;; (define-derived-mode tex-org plain-tex-mode "TEX-ORG"
+;;   "For writing tex documents in an org file.")
+
+;; (defun make-blank-space (arg)
+;;   "To make enough space to put something in. Default to up, with arg down"
+;;   (interactive "P")
+;;   (if (null arg)
+;;       (progn
+;; 	(beginning-of-line)
+;; 	(open-line 3)
+;; 	(forward-line)
+;; 	(indent-according-to-mode))
+;;     (progn
+;;       (end-of-line)
+;;       (open-line 3)
+;;       (forward-line 2)
+;;       (indent-according-to-mode))))
 
 ;; (define-derived-mode tex-org plain-tex-mode "TEX-ORG"
 ;;   "For writing tex documents in an org file.")
