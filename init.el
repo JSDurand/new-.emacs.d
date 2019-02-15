@@ -21,7 +21,8 @@
 (org-babel-load-file (expand-file-name "setting.org" user-emacs-directory))
 (require 'org-bullets)
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
-(setq org-bullets-bullet-list '("⚫" "◯" "✿" "♥" "✸"))
+;; (setq org-bullets-bullet-list '("⚫" "◯" "✿" "♥" "✸"))
+(setq org-bullets-bullet-list '("☸" "◯" "☢" "✿" "♥" "✸"))
 
 (run-with-idle-timer
  5 nil
@@ -57,7 +58,7 @@
       (wordreference "http://www.wordreference.com/fren/%s" define-word--parse-wordreference define-word-display-fn))))
  '(package-selected-packages
    (quote
-    (key-chord cyphejor mu4e-alert org-drill org-plus-contrib emmet-mode xref-js2 js2-refactor js2-mode cnfonts general define-word sx olivetti dash-functional org-super-agenda amx emms haskell-mode projectile counsel-projectile elfeed org-pdfview undo-tree command-log-mode ivy-hydra pdf-tools tablist esup ox-reveal htmlize slime lispy org-bullets pacmacs rainbow-mode magit dired-details company-flx counsel tex auctex yasnippet wrap-region company-math company paredit expand-region iy-go-to-char org org-mode use-package)))
+    (o-blog key-chord cyphejor mu4e-alert org-drill org-plus-contrib emmet-mode xref-js2 js2-refactor js2-mode cnfonts general define-word sx olivetti dash-functional org-super-agenda amx emms haskell-mode projectile counsel-projectile elfeed org-pdfview undo-tree command-log-mode ivy-hydra pdf-tools tablist esup ox-reveal htmlize slime lispy org-bullets pacmacs rainbow-mode magit dired-details company-flx counsel tex auctex yasnippet wrap-region company-math company paredit expand-region iy-go-to-char org org-mode use-package)))
  '(send-mail-function (quote mailclient-send-it))
  '(wrap-region-global-mode t nil (wrap-region)))
 ;; (custom-set-faces

@@ -1,12 +1,12 @@
 alias la ls -lah
 alias ll ls -lh
 alias e exit
-alias rfi cd /Users/durand/Desktop/Centre/français/rfi && ls -lah
-alias sign cd /Users/durand/Desktop/Centre/Python/;python3 auto*.py
-alias view cd /Users/durand/Desktop/Centre/Python/;open Hard\ Worker.png
-alias vid cd ~/Desktop/Centre/Vidéos
-alias play mpv --no-terminal --autofit=100%x100% --no-border --geometry=+0+-24 $*
-alias term open -a terminal
-alias sf open -a safari
-alias gc open -a "Google Chrome"
 alias mus cd ~/Desktop/Centre/Musique/Chansons
+alias gc open -a "Google Chrome"
+alias sf open -a safari
+alias term open -a terminal
+alias play mpv --no-terminal --autofit=100%x100% --no-border --geometry=+0+-24 $*
+alias vid cd ~/Desktop/Centre/Vidéos
+alias view cd /Users/durand/Desktop/Centre/Python/;open Hard\ Worker.png
+alias sign cd /Users/durand/Desktop/Centre/Python/;python3 auto*.py
+alias rfi cd /Users/durand/Desktop/Centre/français/rfi && ls -lah

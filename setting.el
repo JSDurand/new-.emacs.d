@@ -237,23 +237,120 @@ Leave point after open-quotation."
 ;;           (push cl res))))
 ;;     (when (and res (consp res)) (apply #'min res))))
 
-;; (use-package company
-;;   :ensure t
-;;   :defer 10
-;;   :config
-;;   (global-company-mode -1)
-;;   ;; (global-set-key [tab] 'company-complete)
-;;   (global-set-key [tab] 'indent-for-tab-command)
-;;   (setq company-require-match nil)
-;;   (setq company-tooltip-align-annotations t)
-;;   (company-flx-mode 1)
-;;   (setq company-flx-limit 200)		; flx can be slow
-;;   (define-key company-active-map [?\C-n] 'company-select-next) ; just use c-n/p to select
-;;   (define-key company-active-map [?\C-p] 'company-select-previous-or-abort)
-;;   (add-to-list 'completion-styles 'initials) ; initials completion style is handy.
-;;   ;; Do not activate company mode in emacs lisp mode as it causes some crashes in the past!
-;;   (add-hook 'emacs-lisp-mode-hook (lambda () (interactive) (company-mode -1)))
-;;   (setq company-show-numbers t))
+(use-package company
+  :ensure t
+  :defer 10
+  :config
+  (global-company-mode 1)
+  ;; (global-set-key [tab] 'company-complete)
+  ;; (global-set-key [tab] 'indent-for-tab-command)
+  (setq company-require-match nil)
+  (setq company-tooltip-align-annotations t)
+  (company-flx-mode 1)
+  (setq company-flx-limit 200           ; flx can be slow
+        company-tooltip-limit 15
+        company-echo-delay 0)
+
+  (setf company-require-match 'never)
+  (setf company-selection-wrap-around t)
+  (setq company-frontends '(company-tng-frontend
+                            company-pseudo-tooltip-frontend
+                            company-echo-metadata-frontend))
+  (setf company-begin-commands '(self-insert-command org-self-insert-command))
+  (defun add-pcomplete-to-capf ()
+    (add-hook 'completion-at-point-functions 'pcomplete-completions-at-point nil t))
+
+  (add-hook 'org-mode-hook #'add-pcomplete-to-capf)
+  ;; just use c-n/p to select
+  ;; (define-key company-active-map [?\C-n] 'company-select-next)
+  ;; (define-key company-active-map [?\C-p] 'company-select-previous-or-abort)
+  (add-to-list 'completion-styles 'initials) ; initials completion style is handy.
+  ;; This is convenient.
+  (define-key company-active-map (kbd "TAB") 'company-complete-common-or-cycle)
+  (define-key company-active-map (kbd "<tab>") 'company-complete-common-or-cycle)
+  (define-key company-active-map (kbd "S-TAB") 'company-complete-common-or-previous-cycle)
+  (define-key company-active-map (kbd "<backtab>") 'company-complete-common-or-previous-cycle)
+  (define-key company-active-map (kbd "RET") nil)
+
+  ;; Modify the original function so that it completes the previous cycle.
+  (defun company-complete-common-or-previous-cycle (&optional arg)
+    "Insert the common part of all candidates, or select the previous one.
+With ARG, move by that many elements."
+    (interactive "p")
+    (when (company-manual-begin)
+      (let ((tick (buffer-chars-modified-tick)))
+        (call-interactively 'company-complete-common)
+        (when (eq tick (buffer-chars-modified-tick))
+          (let ((company-selection-wrap-around t)
+                (current-prefix-arg arg))
+            (call-interactively 'company-select-previous))))))
+
+  ;; Do not activate company mode in emacs lisp mode as it causes some crashes in the past!
+  ;; I think the situation might be better now, and I would like to try it.
+  ;; (add-hook 'emacs-lisp-mode-hook (lambda () (interactive) (company-mode -1)))
+  (setq company-show-numbers t))
+
+;; for minibuffer setup
+(defvar-local company-col-offset 0 "Horisontal tooltip offset.")
+(defvar-local company-row-offset 0 "Vertical tooltip offset.")
+(defun company--posn-col-row (posn)
+  (let ((col (car (posn-col-row posn)))
+        ;; `posn-col-row' doesn't work well with lines of different height.
+        ;; `posn-actual-col-row' doesn't handle multiple-width characters.
+        (row (cdr (posn-actual-col-row posn))))
+    (when (and header-line-format (version< emacs-version "24.3.93.3"))
+      ;; http://debbugs.gnu.org/18384
+      (cl-decf row))
+    (cons (+ col (window-hscroll) company-col-offset) (+ row company-row-offset))))
+(defun company-elisp-minibuffer (command &optional arg &rest ignored)
+  "`company-mode' completion back-end for Emacs Lisp in the minibuffer."
+  (interactive (list 'interactive))
+  (case command
+    ('prefix (and (minibufferp)
+                  (case company-minibuffer-mode
+                    ('execute-extended-command (company-grab-symbol))
+                    (t (company-capf `prefix)))))
+    ('candidates
+     (case company-minibuffer-mode
+       ('execute-extended-command (all-completions arg obarray 'commandp))
+       (t nil)))))
+
+(defun minibuffer-company ()
+  (unless company-mode
+    (when (and global-company-mode (or (eq this-command #'execute-extended-command)
+                                       (eq this-command #'eval-expression)))
+      (setq-local company-minibuffer-mode this-command)
+      (setq-local completion-at-point-functions
+                  (list (if (fboundp 'elisp-completion-at-point)
+                            #'elisp-completion-at-point
+                          #'lisp-completion-at-point)
+                        t))
+      (setq-local company-show-numbers nil)
+      (setq-local company-backends '((company-elisp-minibuffer company-capf)))
+      (setq-local company-tooltip-limit 8)
+      (setq-local company-col-offset 1)
+      (setq-local company-row-offset 1)
+      (setq-local company-frontends '(company-tng-frontend
+                                      company-pseudo-tooltip-unless-just-one-frontend))
+      (company-mode 1)
+      ;; (when (eq this-command #'execute-extended-command)
+      ;;   (company-complete))
+      )))
+
+(add-hook 'minibuffer-setup-hook #'minibuffer-company)
+
+;; Make the doc buffer permanent
+(defun durand/company-show-doc-buffer ()
+  "Temporarily show the documentation buffer for the selection."
+  (interactive)
+  (let* ((selected (nth company-selection company-candidates))
+         (doc-buffer (or (company-call-backend 'doc-buffer selected)
+                         (error "No documentation available"))))
+    (with-current-buffer doc-buffer
+      (goto-char (point-min)))
+    (display-buffer doc-buffer t)))
+
+(define-key company-active-map (kbd "<f1>") #'durand/company-show-doc-buffer)
 
 (org-babel-load-file "/Users/durand/.emacs.d/my_packages/tex.org")
 
@@ -389,7 +486,8 @@ Leave point after open-quotation."
   (with-eval-after-load 'projectile
     (projectile-global-mode 1)
     (setq projectile-completion-system 'ivy)
-    (define-key projectile-mode-map [?\s-d] 'projectile-command-map)))
+    (define-key projectile-mode-map [?\s-d] 'projectile-command-map)
+    (setf projectile-generic-command "find -L . -type f -print0")))
 
 (use-package amx
   :ensure t
@@ -468,6 +566,9 @@ R: seulement pour lire"))
 
 (defvar durand-custom-modeline ""
   "A custom variable to set for customisation")
+
+(set-face-attribute 'durand-custom-mode-face nil :foreground "#39bf4c")
+(setq durand-custom-modeline "I ")
 
 (defface durand-mode-line-client-face '((t . (:foreground "CadetBlue2")))
   "Face for mode line client construct")
@@ -571,13 +672,13 @@ If ARG is a negative integer, then set the mode-line-format to NIL."
 (defface durand-custom-mode-face '((t (:foreground "red")))
   "Face used for displaying hydra presence")
 
-(use-package lispy
-  :ensure t
-  :defer 5
-  :config
-  (add-hook 'emacs-lisp-mode-hook 'lispy-mode)
-  (add-hook 'lisp-mode-hook 'lispy-mode)
-  (add-hook 'lisp-interaction-mode-hook 'lispy-mode))
+;; (use-package lispy
+;;   :ensure t
+;;   :defer 5
+;;   :config
+;;   (add-hook 'emacs-lisp-mode-hook 'lispy-mode)
+;;   (add-hook 'lisp-mode-hook 'lispy-mode)
+;;   (add-hook 'lisp-interaction-mode-hook 'lispy-mode))
 
 (use-package magit
   :ensure t

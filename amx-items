@@ -1,13 +1,13 @@
 
 ;; ----- amx-history -----
 (
- rainbow-mode
- durand-chercher-pdf
- auto-fill-mode
+ org-mode
  emacs-lisp-mode
  fundamental-mode
- describe-function
- eval-expression
+ auto-fill-mode
+ org-md-export-to-markdown
+ org-export-dispatch
+ load-library
 )
 
 ;; ----- amx-data -----
@@ -25,11 +25,11 @@
  (haskell-process-generate-tags . 2)
  (haskell-session-change . 2)
  (haskell-interactive-bring . 1)
- (list-colors-display . 4)
- (plain-TeX-mode . 11)
- (org-mode . 88)
- (emacs-lisp-mode . 20)
- (auto-fill-mode . 16)
+ (list-colors-display . 5)
+ (plain-TeX-mode . 12)
+ (org-mode . 93)
+ (emacs-lisp-mode . 23)
+ (auto-fill-mode . 17)
  (org-cut-subtree . 2)
  (package-autoremove . 5)
  (isearch-forward . 7)
@@ -41,7 +41,7 @@
  (mu4e-compose-edit . 2)
  (save-buffer . 1)
  (recentf-edit-list . 1)
- (package-list-packages . 9)
+ (package-list-packages . 10)
  (emacs-uptime . 8)
  (emacs-init-time . 6)
  (counsel-grep . 3)
@@ -63,7 +63,7 @@
  (counsel-describe-face . 8)
  (elfeed-show-refresh . 1)
  (plain-tex-mode . 27)
- (fundamental-mode . 59)
+ (fundamental-mode . 62)
  (org-toggle-heading . 4)
  (garbage-collect . 10)
  (durand-test . 3)
@@ -174,4 +174,8 @@
  (eval-region . 1)
  (describe-function . 4)
  (rainbow-mode . 1)
+ (org-agenda-jump-to-novels . 1)
+ (org-export-dispatch . 13)
+ (load-library . 2)
+ (org-md-export-to-markdown . 1)
 )

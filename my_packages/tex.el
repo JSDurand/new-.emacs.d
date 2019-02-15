@@ -271,8 +271,9 @@ If ARG is non-nil, delete the buffer BN"
   (define-key plain-tex-mode-map [?\C-c ?\C-\S-o] '(lambda () (interactive) (make-blank-space 4)))
   (define-key plain-tex-mode-map [?\M-'] 'abbrev-prefix-mark)
   (define-key plain-tex-mode-map [?ù] abbrev-prefix-map)
-  (define-key plain-tex-mode-map [tab] 'completion-at-point)
-
+  ;; (define-key plain-tex-mode-map [tab] 'completion-at-point)
+  (define-key plain-tex-mode-map [tab] 'company-complete)
+  
   (add-hook 'tex-mode-hook 'olivetti-mode)
 
   ;; (remove-hook 'tex-mode-hook
@@ -828,20 +829,20 @@ assuming all defs come at the beginning of line"
 ;; 							(concat (file-name-sans-extension (buffer-name)) ".tex")
 ;; 						      working-name)))))))))))
 
-(defun make-blank-space (arg)
-  "To make enough space to put something in. Default to up, with arg down"
+(defun make-blank-space (&optional down-p)
+  "To make enough space to put something in. Default to up, with DOWN-P down"
   (interactive "P")
-  (if (null arg)
-      (progn
-        (beginning-of-line)
-        (open-line 3)
-        (forward-line)
-        (indent-according-to-mode))
-    (progn
-      (end-of-line)
-      (open-line 3)
-      (forward-line 2)
-      (indent-according-to-mode))))
+  (pcase down-p
+    ((pred null)
+     (beginning-of-line)
+     (open-line 3)
+     (forward-line)
+     (indent-according-to-mode))
+    (_
+     (end-of-line)
+     (open-line 3)
+     (forward-line 2)
+     (indent-according-to-mode))))
 
 ;; (define-derived-mode tex-org plain-tex-mode "TEX-ORG"
 ;;   "For writing tex documents in an org file.")

@@ -60,6 +60,7 @@
                                                         (interactive)
                                                         (org-agenda-open-link)
                                                         (delete-other-windows)))
+  (define-key org-super-agenda-header-map [?j] 'org-agenda-jump-to-item)
   (define-key org-super-agenda-header-map [?\)] 'org-agenda-next-block)
   (define-key org-super-agenda-header-map [?-] 'org-agenda-previous-block)
   (define-key org-super-agenda-header-map (kbd "s-)") 'org-super-agenda-next-group)

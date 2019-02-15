@@ -2,17 +2,19 @@
 ;; built-in completion-at-point do not give me much luck. I think I
 ;; shall build my own completion system, on top of ivy: either
 ;; ivy-read, or ivy-completing-read, or both.
+;; After some time I found that the macro names can be completed by default, so there is
+;; no need to write my own backends now...
 
-(require 'cl-lib)
-(require 'company)
+;; (require 'cl-lib)
+;; (require 'company)
 
 ;;;###autoload
-(defun rough-fuzzy-match (prefix cand)
-  "Return t if PREFIX is a subset of CAND"
-  (string-match-p (mapconcat #'identity
-			     (split-string prefix "")
-			     ".*")
-		  cand))
+;; (defun rough-fuzzy-match (prefix cand)
+;;   "Return t if PREFIX is a subset of CAND"
+;;   (string-match-p (mapconcat #'identity
+;; 			     (split-string prefix "")
+;; 			     ".*")
+;; 		  cand))
 
 ;;;###autoload
 ;; (defun find-macro-content (macro)
@@ -28,36 +30,36 @@
 ;;       (substring macro (1+ ind) -1)))))
 
 ;;;###autoload
-(defun durand-prettify (str)
-  "
-Replace all spaces with a space and truncate to 50"
-  (truncate-string-to-width (replace-regexp-in-string "\n+" " " str) 50))
+;; (defun durand-prettify (str)
+;;   "
+;; Replace all spaces with a space and truncate to 50"
+;;   (truncate-string-to-width (replace-regexp-in-string "\n+" " " str) 50))
 
 ;;;###autoload
-(defun company-tex-backend (command &optional arg &rest ignored)
-  "A backend for use in plain-tex-mode.
+;; (defun company-tex-backend (command &optional arg &rest ignored)
+;;   "A backend for use in plain-tex-mode.
 
-It searches for macros and offers to complete them."
-  (interactive (list 'interactive))
-  (let* ((defs (get-defs))
-	 (def-names
-	   (mapcar (lambda (x) (string-trim x "\\\\"))
-		   (mapcar (lambda (y) (find-macro-name (car y)))
-			   defs)))
-	 (defs-alist (cl-mapcar 'cons def-names defs)))
-    (cl-case command
-      (interactive (company-begin-backend 'company-tex-backend))
-      (prefix (and (eq major-mode 'plain-tex-mode)
-		   (company-grab-word)))
-      (candidates (remove-if-not
-		   (lambda (c)
-		     (rough-fuzzy-match arg c))
-		   def-names))
-      (require-match nil)
-      (doc-buffer (company-doc-buffer (cadr (assoc arg defs-alist))))
-      (annotation (format "%d" (cddr (assoc arg defs-alist))))
-      (meta (durand-prettify
-	     (find-macro-content (cadr (assoc arg defs-alist))))))))
+;; It searches for macros and offers to complete them."
+;;   (interactive (list 'interactive))
+;;   (let* ((defs (get-defs))
+;; 	 (def-names
+;; 	   (mapcar (lambda (x) (string-trim x "\\\\"))
+;; 		   (mapcar (lambda (y) (find-macro-name (car y)))
+;; 			   defs)))
+;; 	 (defs-alist (cl-mapcar 'cons def-names defs)))
+;;     (cl-case command
+;;       (interactive (company-begin-backend 'company-tex-backend))
+;;       (prefix (and (eq major-mode 'plain-tex-mode)
+;; 		   (company-grab-word)))
+;;       (candidates (remove-if-not
+;; 		   (lambda (c)
+;; 		     (rough-fuzzy-match arg c))
+;; 		   def-names))
+;;       (require-match nil)
+;;       (doc-buffer (company-doc-buffer (cadr (assoc arg defs-alist))))
+;;       (annotation (format "%d" (cddr (assoc arg defs-alist))))
+;;       (meta (durand-prettify
+;; 	     (find-macro-content (cadr (assoc arg defs-alist))))))))
 
 ;; (add-to-list 'company-backends 'company-tex-backend)
 

@@ -19,6 +19,8 @@
                                              (frame-root-window)))
                                     (* (/ (x-display-pixel-height) (frame-char-height) 12.0) 5)
                                   (* 5 (/ (- (frame-height) 2) 12.0))))))
+;; By default we are in insert hydra.
+(set-frame-parameter nil 'cursor-type 'bar)
 (toggle-truncate-lines -1)
 (recentf-mode 1)
 (auto-fill-mode 1)
@@ -26,6 +28,7 @@
 (add-to-list 'recentf-exclude "bookmark")
 (set-frame-parameter nil 'alpha '(90 . 90))
 (define-key global-map [?\s-q] nil)
+(define-key global-map [?\s-g] (lambda () (interactive) (message "Spécifique")))
 (define-key key-translation-map (kbd "ESC") (kbd "C-g"))
 
 ;; make the frame semi-fullscreen
@@ -334,19 +337,16 @@ If ARG is non-nil, then don't delete other windows"
 (setq flyspell-issue-message-flag nil)
 
 ;;;###autoload
-(defun cycle-spacing-advice (old &rest args)
+(defun cycle-spacing-advice (&rest args)
   "Deletes newlines as well!"
   (interactive)
-  (let ((modifier (- (prefix-numeric-value current-prefix-arg))))
-    (cond
-     ((and args (integerp (car args)))
-      (apply old (list (* modifier (car args)) (cdr args))))
-     ((and args (null (car args)))
-      (apply old (push modifier (cdr args))))
-     (t
-      (apply old (push modifier (cdr args)))))))
+  (cond
+   ((and args (consp args))
+    (append (list (- (prefix-numeric-value current-prefix-arg))) (cdr args)))
+   (t
+    args)))
 
-(advice-add 'cycle-spacing :around 'cycle-spacing-advice)
+(advice-add 'cycle-spacing :filter-args 'cycle-spacing-advice)
 
 (define-key global-map (kbd "M-SPC") 'cycle-spacing)
 
