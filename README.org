@@ -1,5 +1,8 @@
 * Emacs setup file
-  Well, this is simply the configuration file of some emacs noob.
-  I am just starting to learn some LISP, either emacs lisp, clojure, or common lisp,
-  and the contents of this repository are solely for the purpose of storing my
-  configurations so that I might be able to re-use them when I need to.
+  The last repository I used to store my emacs configurations was broken for some reason.
+  Fortnately the datæ are not lost. So I can create a new repository to store my
+  configurations again.
+
+  I think I know a little emacs-lisp, so I am able to fix some not-so-serious errors
+  during this set-up. In other words, feel free to point any errors out which are
+  encoutnered using this configuration.

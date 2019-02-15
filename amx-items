@@ -1,10 +1,10 @@
 
 ;; ----- amx-history -----
 (
+ auto-fill-mode
  org-mode
  emacs-lisp-mode
  fundamental-mode
- auto-fill-mode
  org-md-export-to-markdown
  org-export-dispatch
  load-library
@@ -29,7 +29,7 @@
  (plain-TeX-mode . 12)
  (org-mode . 93)
  (emacs-lisp-mode . 23)
- (auto-fill-mode . 17)
+ (auto-fill-mode . 18)
  (org-cut-subtree . 2)
  (package-autoremove . 5)
  (isearch-forward . 7)
