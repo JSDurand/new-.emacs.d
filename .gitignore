@@ -3,3 +3,7 @@ backups/
 data/
 semanticdb/
 projectile-bookmarks.eld
+.git/
+.backups/
+auto-save-list/
+.sx/

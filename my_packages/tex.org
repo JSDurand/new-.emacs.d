@@ -283,7 +283,7 @@
        (define-key plain-tex-mode-map [?\C-c ?\C-\S-o] '(lambda () (interactive) (make-blank-space 4)))
        (define-key plain-tex-mode-map [?\M-'] 'abbrev-prefix-mark)
        (define-key plain-tex-mode-map [?ù] abbrev-prefix-map)
-       (define-key plain-tex-mode-map [tab] 'completion-at-point)
+       (define-key plain-tex-mode-map [tab] 'company-complete-common-or-cycle)
 
        (add-hook 'tex-mode-hook 'olivetti-mode)
 
@@ -857,6 +857,42 @@
 
      ;; (define-derived-mode tex-org plain-tex-mode "TEX-ORG"
      ;;   "For writing tex documents in an org file.")
+
+     ;; expand-region
+
+     ;;;###autoload
+     (defun er/add-plain-tex-mode-expansions ()
+       "mark math in tex"
+       (interactive)
+       (make-variable-buffer-local 'er/try-expand-list)
+       (setf (nthcdr 9 er/try-expand-list)
+             (append '(durand-mark-math)
+                     (nthcdr 9 er/try-expand-list))))
+
+     ;;;###autoload
+     (defun durand-mark-math ()
+       "mark inside $$ in tex mode"
+       (interactive)
+       (let ((pt (point)))
+         (condition-case nil
+             (when (ignore-errors
+                     (or (equal (get-text-property (point) 'face) 'tex-math)
+                         (memq 'tex-math (get-text-property (point) 'face))
+                         (and (equal (get-text-property (point) 'face) 'show-paren-match)
+                              (or (equal (get-text-property (1+ (point)) 'face) 'tex-math)
+                                  (memq 'tex-math (get-text-property (1+ (point)) 'face))
+                                  (equal (get-text-property (1- (point)) 'face) 'tex-math)
+                                  (memq 'tex-math (get-text-property (1- (point)) 'face))))))
+               (re-search-forward "$+" nil t)
+               (save-excursion
+                 (forward-sexp -1)
+                 (push-mark nil nil t))
+               (exchange-point-and-mark))
+           (scan-error
+            (goto-char pt)
+            (user-error "Not inside $$")))))
+
+     (er/enable-mode-expansions 'plain-tex-mode 'er/add-plain-tex-mode-expansions)
    #+END_SRC
 ** Moving around
    Try to make navigating tex files become easier and easier.

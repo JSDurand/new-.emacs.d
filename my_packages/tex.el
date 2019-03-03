@@ -130,9 +130,11 @@ If ARG is non-nil, delete the buffer BN"
     (cond
      ((get-buffer corresponding-pdf)
       (switch-to-buffer corresponding-pdf)
+      (pdf-view-last-page)
       (tex-pdf-prepare))
      ((file-exists-p corresponding-pdf)
       (find-file corresponding-pdf)
+      (pdf-view-last-page)
       (tex-pdf-prepare))
      (t
       (message "Cannot find pdf named %s" corresponding-pdf)))))

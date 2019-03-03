@@ -2,7 +2,7 @@
 
 (fset 'yes-or-no-p 'y-or-n-p)
 (setf large-file-warning-threshold nil)
-(setf default-directory "~/.emacs.d/")
+(setq-default default-directory "~/.emacs.d/")
 (setq enable-recursive-minibuffers t)
 (setq tab-always-indent 'complete)
 (setq-default indent-tabs-mode nil)
@@ -30,6 +30,10 @@
 (define-key global-map [?\s-q] nil)
 (define-key global-map [?\s-g] (lambda () (interactive) (message "Spécifique")))
 (define-key key-translation-map (kbd "ESC") (kbd "C-g"))
+
+(set-face-attribute 'bold nil :foreground "RoyalBlue1")
+(set-face-attribute 'italic nil :foreground "light blue")
+(set-face-attribute 'org-verbatim nil :background "gray1")
 
 ;; make the frame semi-fullscreen
 ;; (add-hook 'window-setup-hook 'toggle-frame-fullscreen)
@@ -105,7 +109,7 @@
       (message time-string))))
 
 ;; Record the link types that I know until now.
-(defvar durand-link-types '(shr-url htmlize-link button mu4e-url)
+(defvar durand-link-types '(mu4e-url shr-url button htmlize-link)
   "Link types that I know until now.")
 
 (put (intern "durand-forward-link") 'function-documentation (concat
@@ -396,7 +400,11 @@ If the buffer has a running process, then do not kill it."
   (interactive)
   (cl-loop for buffer being the buffers
 	   do (and (is-not-needed-buffer buffer)
-		   (kill-buffer (buffer-name buffer)))))
+		   (kill-buffer (buffer-name buffer))))
+  (when (and (boundp 'recentf-list)
+             (boundp 'durand-recently-closed-files))
+    (setf recentf-list nil
+          durand-recently-closed-files nil)))
 
 ;;;###autoload
 (defun clean-up-reentf-list (&optional regex)
@@ -461,8 +469,7 @@ If the buffer has a running process, then do not kill it."
   (let ((name (buffer-name buf)))
     (and
      (or (and (= ?* (aref name 0))
-	      (not (string-match "^\\*scratch\\*$" name))
-	      (not (string-match "^\\*Messages\\*$" name)))
+	      (not (string-match "^\\*scratch\\*$" name)))
 	 (string-match "^magit" name))
      (null (get-buffer-process name)))))
 
@@ -505,7 +512,7 @@ If the buffer has a running process, then do not kill it."
 (defun chercher-français (query)
   "Rechercher un mot dans la liste des mots français dans le fichier wiki.org"
   (interactive (list (read-string "Question: ")))
-  (let* ((route_du_fichier "~/org/français.org")
+  (let* ((route_du_fichier "~/org/français/français.org")
          (nom_du_fichier "français.org")
          (a_tuer (not (get-buffer nom_du_fichier)))
          (chose (mapconcat #'identity

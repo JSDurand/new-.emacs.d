@@ -13,6 +13,7 @@
   (setq org-agenda-files '("~/org/agenda.org" "~/org/notes.org" "~/org/aujourdhui.org"))
   ;; (setq org-log-state-notes-insert-after-drawers nil)
   (setq org-log-into-drawer t)
+  (setf org-hide-emphasis-markers t)
   (global-set-key "\C-cl" 'org-store-link)
   (global-set-key "\C-cc" 'org-capture)
   (global-set-key "\C-ca" 'org-agenda)
@@ -38,6 +39,7 @@
   (define-key org-agenda-mode-map [f8] 'durand-org-account-prefix-map)
   (define-key org-agenda-mode-map [?c] 'org-agenda)
   (define-key org-agenda-mode-map [?V] 'orgy-view)
+  (define-key org-agenda-mode-map [?x] 'durand-agenda-exit)
   (define-key org-agenda-mode-map [?\)] 'org-agenda-next-block)
   (define-key org-agenda-mode-map [?-] 'org-agenda-previous-block)
   (define-key org-agenda-mode-map [?$] 'org-agenda-go-to-block)
@@ -76,7 +78,10 @@
   (advice-add 'org-edit-special :after '(lambda (&optional orig-fun)
 					  "Make it full frame"
 					  (delete-other-windows)))
-  (set-face-attribute 'org-block nil :background "gray5" :foreground "DarkOrange1"))
+  (set-face-attribute 'org-block nil :background "gray5" :foreground "DarkOrange1")
+  (set-face-attribute 'bold nil :foreground "OrangeRed1")
+  (set-face-attribute 'org-verbatim nil :background "gray1")
+  (set-face-attribute 'italic nil :foreground "light blue"))
 
 (use-package org-habit
   :config
@@ -90,6 +95,14 @@
 
 ;; org-drill
 (require 'org-drill)
+
+;;;###autoload
+(defun durand-agenda-exit ()
+  "Execute `general-hydra/body' after `org-agenda-exit'.
+Don't bind it to a key in `general-hydra/heads'"
+  (interactive)
+  (org-agenda-exit)
+  (general-hydra/body))
 
 ;; the original org-drill contains invalid calls to org-map-entries
 ;;;###autoload
@@ -288,7 +301,8 @@ the current topic."
          (file+headline "~/org/notes.org" "Links")
          "* PENDING %(org-filter-title) %(org-determine-tag)\n  :PROPERTIES:\n  :RECORD_TIME: %U\n  :END:\n\n  %(org-filtered-link)\n  %i\n  %?"
          :empty-lines 1
-         :jump-to-captured t)
+         :kill-buffer t
+         :immediate-finish t)
 	("t" "TODO" entry
 	 (file "~/org/aujourdhui.org")
 	 "* TODO %? %^{Date to do:}t\n  :PROPERTIES:\n  :RECORD_TIME: %U\n  :END:\n\n"
@@ -316,7 +330,7 @@ the current topic."
 	 "* MEMO %^{title}\n  :PROPERTIES:\n  :RECORD_TIME: %U\n  :LINK: %A\n  :END:\n  %?"
 	 :jump-to-captured t)
         ("f" "français" entry
-	 (file+headline "~/org/français.org" "Liste de mots français")
+	 (file+headline "~/org/français/français.org" "Liste de mots français")
 	 "* MEMO %^{mot} :drill:\n  :PROPERTIES:\n  :DRILL_CARD_TYPE: français\n  :RECORD_TIME: %U\n  :MEANING: %^{ce qu'il veut dire}\n  :END:\n\n  MEANING: %\\2\n%?"
 	 :jump-to-captured t)))
 
@@ -607,7 +621,7 @@ the current topic."
                       ;; (:name "Regular Habits"
                       ;;        :and (:tag "regular" :habit t))
                       (:name "Health Habits"
-                             :and (:tag "habit" :tag "health")
+                             :tag ("santé")
                              :order 5
                              :log t)
                       (:name "MATH"
@@ -631,9 +645,9 @@ the current topic."
                  (org-agenda-overriding-header "TO-THINK")))
           (todo "PENDING"
                 ((org-super-agenda-groups
-                  '((:name "YouTube" :tag "youtube")
+                  '((:name "Des Romans" :discard (:tag "roman"))
+                    (:name "YouTube" :tag "youtube")
                     (:name "Stack" :tag "stack")
-                    (:name "Des Romans" :tag "roman")
                     (:name "Web Link" :tag "web_link")
                     (:name "PENDING" :anything t)))
                  (org-agenda-overriding-header "PENDING")))
@@ -724,6 +738,7 @@ the current topic."
 	  (org-super-agenda-groups
 	   '((:name "Withdrawal Records"
 		    :and (:todo "WITHDRAW" :tag "withdraw"))))))))
+
 (setq org-account-file-name (format "~/org/account/account-%d-%d.org"
 				    (caddr (calendar-current-date))
 				    (car (calendar-current-date))))
@@ -771,12 +786,12 @@ there is one, return it."
        (cond
 	((null links)
 	 (message "No links"))
+	((and (integerp nth) (< nth 0))
+         (setq link links))
 	((equal (length links) 1)
 	 (setq link (car links)))
-	((and (integerp nth) (>= nth 0) (>= (length links) (if have-zero (1+ nth) nth)))
+        ((and (integerp nth) (>= nth 0) (>= (length links) (if have-zero (1+ nth) nth)))
 	 (setq link (nth (if have-zero nth (1- nth)) links)))
-        ((and (integerp nth) (< nth 0))
-         (setq link links))
 	(t				; we have to select a link
 	 (save-excursion
 	   (save-window-excursion
@@ -818,6 +833,8 @@ there is one, return it."
 	(end-of-line)
 	(re-search-forward "^\\s-\\S-" nil 'go))
     (re-search-forward "^\\s-\\S-" nil 'go))
+  (when (= (point) (point-max))
+    (org-agenda-next-block))
   (beginning-of-line)
   (recenter))
 
@@ -936,7 +953,9 @@ If this information is not given, the function uses the tree at point."
 (defun org-agenda-show-blocks-number ()
   "Show the current position"
   (let ((num (length (-filter (lambda (x) (>= (point) x)) org-agenda-block-seps))))
-    (and num (format "%d/%d" num org-agenda-total-blocks))))
+    (and num (format "%d/%d" num (if org-agenda-total-blocks
+                                     org-agenda-total-blocks
+                                   0)))))
 
 ;;;###autoload
 (defun org-super-agenda-previous-group ()
@@ -950,6 +969,9 @@ If this information is not given, the function uses the tree at point."
 	(beginning-of-line)
 	(re-search-forward "^\\s-\\S-" nil 'go -1))
     (re-search-forward "^\\s-\\S-" nil 'go -1))
+  (when (= (point) (point-min))
+    (org-agenda-previous-block)
+    (goto-char (point-max)))
   (beginning-of-line)
   (recenter))
 
@@ -1240,13 +1262,13 @@ If this information is not given, the function uses the tree at point."
 (add-hook 'org-capture-mode-hook (lambda ()
 				   "Activate fill-column in org capture"
 				   (interactive)
-				   (setq-local fill-column 80)
+				   (setq-local fill-column 90)
 				   (auto-fill-mode 1)))
 (add-hook 'org-log-buffer-setup-hook
 	  (lambda ()
 	    "Activate fill-column in org capture"
 	    (interactive)
-	    (setq-local fill-column 80)
+	    (setq-local fill-column 90)
 	    (auto-fill-mode 1)))
 
 ;;;###autoload
@@ -1434,8 +1456,173 @@ and whose `caddr' is a list of strings, the content of the note."
     (org-open-link-from-string
      (substring-no-properties
       (car (assoc* choice cands
-                   :test (lambda (x y)
-                           (string-match x y))))))))
+                   :test #'string-match))))))
+
+;;;###autoload
+(defun durand-org-link-info ()
+  "Return a cons of the headline text and the links contained therein."
+  (let* ((texte (nth 4 (org-heading-components)))
+         (limite (save-excursion
+                   (outline-next-heading)
+                   (point)))
+         (liste (let (res)
+                  (while (re-search-forward org-any-link-re limite t)
+                    (push (match-string-no-properties 2) res))
+                  res)))
+    (cons texte liste)))
+
+;;;###autoload
+(defun durand-choose-list (cands &optional all texte)
+  "Choose from an alist. Multiple selection is supported.
+If ALL is non-nil, add a choice to select all of them."
+  (if (= (length cands) 1)
+      (list (caar cands))
+    (let ((cands (if all (append '("all") cands) cands))
+          (question (or texte "Chois un: "))
+          res det)
+      (setf ivy--index 0)
+      (while (null det)
+        (setf det t)
+        (let ((ele (ivy-read question cands
+                             :require-match t
+                             :action '(1
+                                       ("o" identity "default")
+                                       ("m" (lambda (x)
+                                              (setf det nil))
+                                        "continue"))
+                             :preselect ivy--index)))
+          (push ele res)))
+      (when (member "all" res) (setf res (mapcar #'car (cdr cands))))
+      (setf res (remove-duplicates res :test #'equal))
+      res)))
+
+;;;###autoload
+(defun org-open-novels (&optional arg)
+  "Choose novel to open. With ARG, update novels."
+  (interactive "P")
+  (if (null arg)
+      (let* ((route_du_fichier "~/org/notes.org")
+             (nom_du_tampon "notes.org")
+             (nom_du_tampon_actuel (buffer-name))
+             (déjà_ouvert (get-buffer nom_du_tampon))
+             (inhibit-message t) cands)
+        (find-file route_du_fichier)
+        (switch-to-buffer nom_du_tampon_actuel)
+        (with-current-buffer nom_du_tampon
+          (setf cands (org-map-entries #'durand-org-link-info "roman")))
+        (unwind-protect
+            (let ((liste-de-choix
+                   (let (temp)
+                     (let* ((sel (durand-choose-list cands t "Chois un roman: ")))
+                       (mapc (lambda (x)
+                               (setf temp (append temp
+                                                  (durand-choose-list
+                                                   (mapcar (lambda (x) (cons x '("1"))) (assoc-default x cands))
+                                                   t))))
+                             sel)
+                       temp))))
+              (mapc #'browse-url liste-de-choix))
+          (when (and (not déjà_ouvert) (get-buffer nom_du_tampon))
+            (kill-buffer nom_du_tampon))))
+    (org-update-novels)))
+
+;;;###autoload
+(defun org-update-novels ()
+  "Update the html link to a novel"
+  (interactive)
+  (let* ((route_du_fichier "~/org/notes.org")
+         (nom_du_tampon "notes.org")
+         (nom_du_tampon_actuel (buffer-name))
+         (déjà_ouvert (get-buffer nom_du_tampon))
+         (inhibit-message t) cands)
+    (find-file route_du_fichier)
+    (switch-to-buffer nom_du_tampon_actuel)
+    (with-current-buffer nom_du_tampon
+      (setf cands (org-map-entries
+                   (lambda () (let ((pos (point))) (append (durand-org-link-info) (list pos))))
+                   "roman"))
+      (unwind-protect
+          (let* ((choix (ivy-read "Chois un roman à mettre à jour: " cands
+                                  :require-match t))
+                 (item (assoc* choix cands :test #'equal))
+                 (lien (read-string "Le lien: " (current-kill 0 t))))
+            (goto-char (-last (lambda (x) t) item))
+            (org-update-link lien))
+        (save-buffer 0)
+        (when (and (not déjà_ouvert) (get-buffer nom_du_tampon))
+          (kill-buffer nom_du_tampon))))))
+
+;;;###autoload
+(defun durand-org-filter-dates (str)
+  "Filter out the timestamp in string"
+  (if (string-match org-ts-regexp3 str)
+      (replace-match "" nil nil str)
+    str))
+
+;;;###autoload
+(defun org-open-articles (&optional arg)
+  "Open all articles, that is, entries in \"notes.org\" with \"a_voir\" tag.
+If ARG is non-nil, then execute `durand-update-article'."
+  (interactive "P")
+  (if (null arg)
+      (let* ((route_du_fichier "~/org/notes.org")
+             (nom_du_tampon "notes.org")
+             (nom_du_tampon_actuel (buffer-name))
+             (déjà_ouvert (get-buffer nom_du_tampon))
+             (inhibit-message t) cands)
+        (find-file route_du_fichier)
+        (switch-to-buffer nom_du_tampon_actuel)
+        (with-current-buffer nom_du_tampon
+          (setf cands (org-map-entries #'durand-org-link-info "a_voir")))
+        (setf cands
+              (mapcar (lambda (x) (cons (durand-org-filter-dates (car x)) (cdr x))) cands))
+        (setf cands (reverse cands))
+        (unwind-protect
+            (let ((liste-de-choix
+                   (let (temp)
+                     (let* ((sel (durand-choose-list cands nil "Chois un article: ")))
+                       (mapc (lambda (x)
+                               (setf temp (append temp
+                                                  (durand-choose-list
+                                                   (mapcar (lambda (x) (cons x '("1"))) (assoc-default x cands))
+                                                   t))))
+                             sel)
+                       temp))))
+              (mapc #'org-open-link-from-string liste-de-choix))
+          (when (and (not déjà_ouvert) (get-buffer nom_du_tampon))
+            (kill-buffer nom_du_tampon))
+          (delete-other-windows)))
+    (durand-update-article)))
+
+;;;###autoload
+(defun durand-update-article ()
+  "Update the link to an article;
+the link comes from the most recently stored link, so choose carefully the target to update."
+  (interactive)
+  (let* ((route_du_fichier "~/org/notes.org")
+         (nom_du_tampon "notes.org")
+         (nom_du_tampon_actuel (buffer-name))
+         (déjà_ouvert (get-buffer nom_du_tampon))
+         (inhibit-message t) cands)
+    (find-file route_du_fichier)
+    (switch-to-buffer nom_du_tampon_actuel)
+    (with-current-buffer nom_du_tampon
+      (setf cands (org-map-entries
+                   (lambda () (let ((pos (point))) (append (durand-org-link-info) (list pos))))
+                   "a_voir"))
+      (setf cands (mapcar (lambda (x)
+                            (cons (durand-org-filter-dates (car x)) (cdr x)))
+                          cands))
+      (setf cands (reverse cands))
+      (unwind-protect
+          (let* ((choix (ivy-read "Chois un lien à mettre à jour: " cands
+                                  :require-match t))
+                 (item (assoc* choix cands :test #'equal)))
+            (goto-char (caddr item))
+            (org-update-link nil t))
+        (when (and (not déjà_ouvert) (get-buffer nom_du_tampon))
+          (save-buffer)
+          (kill-buffer nom_du_tampon))))))
 
 ;;;###autoload
 (defun org-agenda-jump-to-novels ()
@@ -2018,6 +2205,23 @@ with `C-uC-u' prefix argument, update all accounts."
 ;; Finally run (message-send-and-exit)
 ;; In theory the color of the signature will be correctly adjusted this way.
 
-;; Now the signature is automatically blue-ish. To change it bak to
+;; Now the signature is automatically blue-ish. To change it back to
 ;; normal, just delete the export block and do not run
 ;; (org-mime-htmlize).
+
+;; durand-capture
+
+(defun durand-capture ()
+  "Use `ivy-read' to choose a key."
+  (interactive)
+  (let* ((temps (org-capture-upgrade-templates org-capture-templates))
+         (choix (mapcar (lambda (x)
+                          (cons (string-join (list (car x)
+                                                   (cadr x))
+                                             ": ")
+                                (car x)))
+                        temps))
+         (clé (assoc-default (ivy-read "Chois un clé: " choix
+                                       :require-match t)
+                             choix)))
+    (org-capture nil clé)))

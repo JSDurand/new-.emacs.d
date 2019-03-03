@@ -1,32 +1,3 @@
-mpv --loop=inf "/Users/durand/Desktop/Centre/Musique/Chansons/Blama/Heart Sutra by Lama  Khenpo Pema Choephel Rinpoche.m4a"
-Q
-rg --follow --iglob "*el" load-path ./
-e
-rg poste
-e
-wo
-term
-e
-term
-e
-cd ../org
-rg villani
-rg grothendieck
-rg grothend
-rg *grothend*
-rg "*grothend*"
-rg grothend
-rg grothend ./
-la
-rg to-think
-rg to-think ./notes.org
-rg to-think ./
-rg TO-THINK ./
-rg --help
-rg -i grothend
-rg -i villani
-rg -i cedric
-e
 rg matcher
 rg --follow --iglob "*el" matcher ./
 rg -i --follow --iglob "*el" matcher ./
@@ -125,4 +96,33 @@ cd /
 cd /Volumes/
 ls
 diskutil eject CHARLOTTE/
+e
+cd /Volumes/
+la
+open -a Finder
+e
+cd ../org/français/
+play journal_international_00h00_-_00h10_tu_20190217.mp3
+play journal_international_00h00_-_00h10_tu_20190217.mp3
+e
+e
+messer
+e
+e
+mpv --loop=inf "/Users/durand/Desktop/Centre/Musique/Chansons/Blama"
+e
+mpv --loop=inf "/Users/durand/Desktop/Centre/Musique/Chansons/Blama/Om Ah Hum Vajra Guru Pema Siddhi Hum.m4a"
+e
+mpv --loop=inf "/Users/durand/Desktop/Centre/Musique/Chansons/Blama/文殊師利菩薩祈請文・多識仁波切 譯 ᴴᴰ དཔེ་སྐྲུན་ཁང་། ・Praise of Manjushri Bodhisattva.mp3"
+mpv --loop=inf "/Users/durand/Desktop/Centre/Musique/Chansons/Blama/buddha song.mp3"
+mpv --loop=inf "/Users/durand/Desktop/Centre/Musique/Chansons/Blama/Om Ah Hum Vajra Guru Pema Siddhi Hum.m4a"
+e
+mpv --loop=inf "/Users/durand/Desktop/Centre/Musique/Chansons/Chinois/【Seammy趙乃吉】夢一場 Cover.mp3"
+mpv --loop=inf "/Users/durand/Desktop/Centre/Musique/Chansons/Chinois/房東的貓 - 雲煙成雨『我能否變成淤泥, 再一次沾染你...』【動態歌詞Lyrics】.mp3"
+e
+mpv --loop=inf "/Users/durand/Desktop/Centre/Musique/Chansons/Chinois/房東的貓 - 雲煙成雨『我能否變成淤泥, 再一次沾染你...』【動態歌詞Lyrics】.mp3"
+e
+e
+mpv --loop=inf "/Users/durand/Desktop/Centre/Musique/Chansons/Chinois/房東的貓 - 【春風十里】MV 我說所有的酒都不如你.mp3"
+mpv --loop=inf "/Users/durand/Desktop/Centre/Musique/Chansons/Chinois/房東的貓 - 雲煙成雨『我能否變成淤泥, 再一次沾染你...』【動態歌詞Lyrics】.mp3"
 e

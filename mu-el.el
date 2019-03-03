@@ -363,6 +363,7 @@ Make a function that toggles ARG on or off in elfeed search"
         ("/drafts" . ?d)))
 
 (define-key mu4e-view-mode-map [?o] 'mu4e-view-attach-emacs)
+(define-key mu4e-view-mode-map (kbd "<home>") 'general-hydra/body)
 
 (add-to-list 'mu4e-view-actions
 	     '("Browse this mail" . mu4e-action-view-in-browser))
@@ -461,20 +462,31 @@ Make a function that toggles ARG on or off in elfeed search"
   (mu4e-alert-enable-mode-line-display)
 
   ;; do what I mean
-  (defun durand-mu4e ()
-    "
-If there are unread mails, view them; else, show the time until the next update,
-unless called multiple times, in which case execute `mu4e'."
-    (interactive)
+  (defun durand-mu4e (&optional arg)
+    "If there are unread mails, view them; else, show the time until the next update,
+unless called multiple times, in which case execute `mu4e'.
+With ARG, toggle mu4e.
+If mu4e is not turned on, then tell the user this fact."
+    (interactive "P")
     (cond
+     ((and arg (or (get-process " *mu4e-proc*")
+                   mu4e~update-timer))
+      (mu4e-quit)
+      (message "mu4e is turned off now."))
+     (arg
+      (mu4e))
      (mu4e-alert-mode-line (mu4e-alert-view-unread-mails))
      ;; ((eq last-command 'durand-mu4e) (mu4e))
-     ((memq last-command `(durand-mu4e ,(intern "general-hydra/lambda-,m")))
+     ((and (memq last-command `(durand-mu4e ,(intern "general-hydra/lambda-,m")))
+           mu4e~update-timer)
       (mu4e)
       (mu4e-next-update-seconds))
+     ((memq last-command `(durand-mu4e ,(intern "general-hydra/lambda-,m")))
+      (mu4e))
+     (mu4e~update-timer
+      (mu4e-next-update-seconds))
      (t
-      (message "%s" last-command)
-      (mu4e-next-update-seconds))))
+      (message "mu4e is not active right now."))))
   
   (defun durand-mu4e-format-string (&rest args)
     "Format string"

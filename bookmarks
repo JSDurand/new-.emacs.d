@@ -2,34 +2,31 @@
 ;;; This format is meant to be slightly human-readable;
 ;;; nevertheless, you probably don't want to edit it.
 ;;; -*- End Of Bookmark File Format Version Stamp -*-
-(("ideal"
+(("emacs"
+ (filename . "~/org/emacs-presentation.org")
+ (front-context-string)
+ (rear-context-string . "groups as well.\n")
+ (position . 19125))
+("ideal"
  (filename . "~/.emacs.d/my_packages/ideal/ideal.el")
- (front-context-string . "\n  (\"RET r\" rect")
- (rear-context-string . "o\") :color blue)")
- (position . 25319))
+ (front-context-string . "(setf durand-jum")
+ (rear-context-string . ";; some actions\n")
+ (position . 3953))
 ("scratch.tex"
  (filename . "~/Desktop/Centre/Mes notes/Les papiers/jouer/scratch.tex")
  (front-context-string)
- (rear-context-string . " representable.\n")
- (position . 3950))
+ (rear-context-string . "vent mentionné.\n")
+ (position . 7793))
 ("topologie et cohomologie.tex"
  (filename . "~/Desktop/Centre/Mes notes/Les papiers/jouer/topologie et cohomologie.tex")
  (front-context-string)
  (rear-context-string . "nt à $\\cov(T)$.\n")
  (position . 977))
-("hubbard"
- (filename . "~/Downloads/[John_H._Hubbard]_Teichmüller_Theory_And_Applicat(b-ok.cc).pdf")
- (position . 1)
- (page . 23)
- (slice)
- (size . fit-width)
- (origin 0.0 . 0.0)
- (handler . pdf-view-bookmark-jump-handler))
 ("français"
- (filename . "~/org/français.org")
- (front-context-string . "* Liste de mots ")
- (rear-context-string . "WORD) %MEANING\n\n")
- (position . 145))
+ (filename . "~/org/français/français.org")
+ (front-context-string . "#+TITLE: File fo")
+ (rear-context-string)
+ (position . 1))
 ("NCTS"
  (filename . "~/Desktop/Centre/Mes notes/Les papiers/NCTS thèse/")
  (front-context-string . ".DS_Store\n  drwx")
@@ -69,10 +66,10 @@
  (rear-context-string . "très important.\n")
  (position . 10771))
 ("org-capture-last-stored"
- (filename . "~/org/notes.org")
- (front-context-string . "** PENDING Rion_")
- (rear-context-string . "es fonctions L\n\n")
- (position . 14185))
+ (filename . "~/org/français/français.org")
+ (front-context-string . "** MEMO avérer  ")
+ (rear-context-string . "MEANING: buffer\n")
+ (position . 32192))
 ("university-plan.org"
  (filename . "~/org/university-plan/university-plan.org")
  (front-context-string . "* Purpose\n  I sh")
@@ -83,9 +80,4 @@
  (front-context-string . "** my hydras\n   ")
  (rear-context-string . "))\n   #+END_SRC\n")
  (position . 23296))
-("note"
- (filename . "~/org/notes.org")
- (front-context-string . "#+title: Quick N")
- (rear-context-string)
- (position . 1))
 )

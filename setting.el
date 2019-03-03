@@ -1,3 +1,6 @@
+(require 'font-lock)
+(add-to-list 'load-path "~/.emacs.d/elpa/font-lock+")
+(require 'font-lock+)
 (setq delete-old-versions t)		; delete excess backup versions silently
 (setq version-control nil)		; use version control
 (setq vc-make-backup-files nil)		; make backups file even when in version controlled dir
@@ -266,11 +269,12 @@ Leave point after open-quotation."
   ;; (define-key company-active-map [?\C-p] 'company-select-previous-or-abort)
   (add-to-list 'completion-styles 'initials) ; initials completion style is handy.
   ;; This is convenient.
-  (define-key company-active-map (kbd "TAB") 'company-complete-common-or-cycle)
-  (define-key company-active-map (kbd "<tab>") 'company-complete-common-or-cycle)
-  (define-key company-active-map (kbd "S-TAB") 'company-complete-common-or-previous-cycle)
-  (define-key company-active-map (kbd "<backtab>") 'company-complete-common-or-previous-cycle)
-  (define-key company-active-map (kbd "RET") nil)
+  (when company-active-map
+    (define-key company-active-map (kbd "TAB") 'company-complete-common-or-cycle)
+    (define-key company-active-map (kbd "<tab>") 'company-complete-common-or-cycle)
+    (define-key company-active-map (kbd "S-TAB") 'company-complete-common-or-previous-cycle)
+    (define-key company-active-map (kbd "<backtab>") 'company-complete-common-or-previous-cycle)
+    (define-key company-active-map (kbd "RET") nil))
 
   ;; Modify the original function so that it completes the previous cycle.
   (defun company-complete-common-or-previous-cycle (&optional arg)
@@ -285,59 +289,60 @@ With ARG, move by that many elements."
                 (current-prefix-arg arg))
             (call-interactively 'company-select-previous))))))
 
-  ;; Do not activate company mode in emacs lisp mode as it causes some crashes in the past!
-  ;; I think the situation might be better now, and I would like to try it.
-  ;; (add-hook 'emacs-lisp-mode-hook (lambda () (interactive) (company-mode -1)))
+  ;; Do not activate company mode in emacs lisp mode as it causes some crashes that even
+  ;; abo-abo does not know how to fix for now!
+  (add-hook 'emacs-lisp-mode-hook (lambda () (interactive) (company-mode -1)))
   (setq company-show-numbers t))
 
-;; for minibuffer setup
-(defvar-local company-col-offset 0 "Horisontal tooltip offset.")
-(defvar-local company-row-offset 0 "Vertical tooltip offset.")
-(defun company--posn-col-row (posn)
-  (let ((col (car (posn-col-row posn)))
-        ;; `posn-col-row' doesn't work well with lines of different height.
-        ;; `posn-actual-col-row' doesn't handle multiple-width characters.
-        (row (cdr (posn-actual-col-row posn))))
-    (when (and header-line-format (version< emacs-version "24.3.93.3"))
-      ;; http://debbugs.gnu.org/18384
-      (cl-decf row))
-    (cons (+ col (window-hscroll) company-col-offset) (+ row company-row-offset))))
-(defun company-elisp-minibuffer (command &optional arg &rest ignored)
-  "`company-mode' completion back-end for Emacs Lisp in the minibuffer."
-  (interactive (list 'interactive))
-  (case command
-    ('prefix (and (minibufferp)
-                  (case company-minibuffer-mode
-                    ('execute-extended-command (company-grab-symbol))
-                    (t (company-capf `prefix)))))
-    ('candidates
-     (case company-minibuffer-mode
-       ('execute-extended-command (all-completions arg obarray 'commandp))
-       (t nil)))))
+;; For minibuffer setup
+;; I changed my mind now: I do not like company in minibuffer.
+;; (defvar-local company-col-offset 0 "Horisontal tooltip offset.")
+;; (defvar-local company-row-offset 0 "Vertical tooltip offset.")
+;; (defun company--posn-col-row (posn)
+;;   (let ((col (car (posn-col-row posn)))
+;;         ;; `posn-col-row' doesn't work well with lines of different height.
+;;         ;; `posn-actual-col-row' doesn't handle multiple-width characters.
+;;         (row (cdr (posn-actual-col-row posn))))
+;;     (when (and header-line-format (version< emacs-version "24.3.93.3"))
+;;       ;; http://debbugs.gnu.org/18384
+;;       (cl-decf row))
+;;     (cons (+ col (window-hscroll) company-col-offset) (+ row company-row-offset))))
+;; (defun company-elisp-minibuffer (command &optional arg &rest ignored)
+;;   "`company-mode' completion back-end for Emacs Lisp in the minibuffer."
+;;   (interactive (list 'interactive))
+;;   (case command
+;;     ('prefix (and (minibufferp)
+;;                   (case company-minibuffer-mode
+;;                     ('execute-extended-command (company-grab-symbol))
+;;                     (t (company-capf `prefix)))))
+;;     ('candidates
+;;      (case company-minibuffer-mode
+;;        ('execute-extended-command (all-completions arg obarray 'commandp))
+;;        (t nil)))))
 
-(defun minibuffer-company ()
-  (unless company-mode
-    (when (and global-company-mode (or (eq this-command #'execute-extended-command)
-                                       (eq this-command #'eval-expression)))
-      (setq-local company-minibuffer-mode this-command)
-      (setq-local completion-at-point-functions
-                  (list (if (fboundp 'elisp-completion-at-point)
-                            #'elisp-completion-at-point
-                          #'lisp-completion-at-point)
-                        t))
-      (setq-local company-show-numbers nil)
-      (setq-local company-backends '((company-elisp-minibuffer company-capf)))
-      (setq-local company-tooltip-limit 8)
-      (setq-local company-col-offset 1)
-      (setq-local company-row-offset 1)
-      (setq-local company-frontends '(company-tng-frontend
-                                      company-pseudo-tooltip-unless-just-one-frontend))
-      (company-mode 1)
-      ;; (when (eq this-command #'execute-extended-command)
-      ;;   (company-complete))
-      )))
+;; (defun minibuffer-company ()
+;;   (unless company-mode
+;;     (when (and global-company-mode (or (eq this-command #'execute-extended-command)
+;;                                        (eq this-command #'eval-expression)))
+;;       (setq-local company-minibuffer-mode this-command)
+;;       (setq-local completion-at-point-functions
+;;                   (list (if (fboundp 'elisp-completion-at-point)
+;;                             #'elisp-completion-at-point
+;;                           #'lisp-completion-at-point)
+;;                         t))
+;;       (setq-local company-show-numbers nil)
+;;       (setq-local company-backends '((company-elisp-minibuffer company-capf)))
+;;       (setq-local company-tooltip-limit 8)
+;;       (setq-local company-col-offset 1)
+;;       (setq-local company-row-offset 1)
+;;       (setq-local company-frontends '(company-tng-frontend
+;;                                       company-pseudo-tooltip-unless-just-one-frontend))
+;;       (company-mode 1)
+;;       ;; (when (eq this-command #'execute-extended-command)
+;;       ;;   (company-complete))
+;;       )))
 
-(add-hook 'minibuffer-setup-hook #'minibuffer-company)
+;; (add-hook 'minibuffer-setup-hook #'minibuffer-company)
 
 ;; Make the doc buffer permanent
 (defun durand/company-show-doc-buffer ()
@@ -525,6 +530,9 @@ With ARG, move by that many elements."
 ;; 	     ;; %c print the current column
 ;; 	     (line-number-mode ("%l" (column-number-mode ":%c")))))
 
+(defface durand-custom-mode-face '((t (:foreground "red")))
+  "Face used for displaying hydra presence")
+
 (defun my-position ()
   "My function of mode-line-position"
   (cond
@@ -535,13 +543,13 @@ With ARG, move by that many elements."
 
 (defun propertized-buffer-identification (fmt)
   "Return a list suitable for `mode-line-buffer-identification'.
-FMT is a format specifier such as \"%12b\".  This function adds
-text properties for face, help-echo, and local-map to it."
+     FMT is a format specifier such as \"%12b\".  This function adds
+     text properties for face, help-echo, and local-map to it."
   (list (propertize fmt
                     'face 'mode-line-buffer-id
                     'help-echo
                     (purecopy "Nom du tampon
-souris-1: Dernier tampon\nsouris-3: Prochain tampon")
+     souris-1: Dernier tampon\nsouris-3: Prochain tampon")
                     'mouse-face 'mode-line-highlight
                     'local-map mode-line-buffer-identification-keymap)))
 
@@ -561,14 +569,18 @@ souris-1: Dernier tampon\nsouris-3: Prochain tampon")
         (propertize "R " 'face '(:foreground "IndianRed1"))
       " "))
    'help-echo "M: modifié 
-N: C'est peut-être pas un fichier
-R: seulement pour lire"))
+     N: C'est peut-être pas un fichier
+     R: seulement pour lire"))
 
 (defvar durand-custom-modeline ""
   "A custom variable to set for customisation")
 
-(set-face-attribute 'durand-custom-mode-face nil :foreground "#39bf4c")
-(setq durand-custom-modeline "I ")
+(set-face-attribute 'durand-custom-mode-face nil
+                    :foreground "#39bf4c"
+                    :inherit nil
+                    :height 1.0)
+(setq durand-custom-modeline (propertize "I "
+                                         'help-echo "spécifique"))
 
 (defface durand-mode-line-client-face '((t . (:foreground "CadetBlue2")))
   "Face for mode line client construct")
@@ -612,8 +624,8 @@ R: seulement pour lire"))
                 " %n "
                 mode-line-misc-info
                 mode-line-end-spaces))
-                ;; mode-line-modes -- I don't want all those minor modes information
-                ;; " %I "
+;; mode-line-modes -- I don't want all those minor modes information
+;; " %I "
 
 
 (setq durand-default-mode-line-format mode-line-format)
@@ -624,12 +636,20 @@ R: seulement pour lire"))
 (make-variable-buffer-local 'durand-mode-line-toggled)
 
 (defun durand-toggle-mode-line (&optional arg)
-  "
-If ARG is nil, then toggle the mode-line.
-If ARG is a positive integer, then set the mode-line-format to the default one.
-If ARG is a negative integer, then set the mode-line-format to NIL."
+  "If ARG is nil, then toggle the mode-line.
+     If ARG is a positive integer, then set the mode-line-format to the default one.
+     If ARG is a negative integer, then set the mode-line-format to NIL."
   (interactive "P")
   (pcase arg
+    ((and (pred integerp)
+          (pred (lambda (num) (<= num 0))))
+     (setq mode-line-format nil)
+     (force-mode-line-update))
+    ((guard (equal major-mode 'pdf-view-mode))
+     (message "Nom: %s, page: %d, total: %d"
+              (buffer-name)
+              (pdf-view-current-page)
+              (pdf-cache-number-of-pages)))
     ((pred null)
      ;; (pcase mode-line-format
      ;;   ((pred null)
@@ -653,10 +673,6 @@ If ARG is a negative integer, then set the mode-line-format to NIL."
           (pred (lambda (num) (>= num 0))))
      (setq mode-line-format durand-default-mode-line-format)
      (force-mode-line-update))
-    ((and (pred integerp)
-          (pred (lambda (num) (<= num 0))))
-     (setq mode-line-format nil)
-     (force-mode-line-update))
     (_
      (message "ARG should be either NIL, or an integer, but got %s" arg))))
 
@@ -669,16 +685,14 @@ If ARG is a negative integer, then set the mode-line-format to NIL."
 
 ;; (defface durand-custom-mode-face '((t (:foreground "red" :inherit mode-line)))
 ;;   "Face used for displaying hydra presence")
-(defface durand-custom-mode-face '((t (:foreground "red")))
-  "Face used for displaying hydra presence")
 
-;; (use-package lispy
-;;   :ensure t
-;;   :defer 5
-;;   :config
-;;   (add-hook 'emacs-lisp-mode-hook 'lispy-mode)
-;;   (add-hook 'lisp-mode-hook 'lispy-mode)
-;;   (add-hook 'lisp-interaction-mode-hook 'lispy-mode))
+(use-package lispy
+  :ensure t
+  :defer 5
+  :config
+  (add-hook 'emacs-lisp-mode-hook 'lispy-mode)
+  (add-hook 'lisp-mode-hook 'lispy-mode)
+  (add-hook 'lisp-interaction-mode-hook 'lispy-mode))
 
 (use-package magit
   :ensure t
@@ -1066,6 +1080,13 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
 ;; (advice-remove 'mu4e-headers-search-bookmark  (lambda (&rest args) (cyphejor-mode 1)))
 ;; (advice-remove 'mu4e-headers-search  (lambda (&rest args) (cyphejor-mode 1)))
 ;; (advice-remove 'mu4e~headers-jump-to-maildir  (lambda (&rest args) (cyphejor-mode 1)))
+
+(use-package all-the-icons
+  :ensure t)
+
+(use-package all-the-icons-dired
+  :ensure t
+  :hook (dired-mode . all-the-icons-dired-mode))
 
 ;; (ivy-read "HI: " '("ffa" "ffb" "ffba" "ffaa")
 ;; 	  :unwind (lambda () (setq durand-changed nil)))

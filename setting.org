@@ -1,11 +1,13 @@
 #+TITLE: Durand's Emacs Settings
 #+AUTHOR: Durand
 #+OPTIONS: toc:nil num:nil
-#+STARTUP: noindent 
-#+STARTUP: content
+#+STARTUP: noindent content
 * Taken from internet 
 
 #+BEGIN_SRC emacs-lisp
+  (require 'font-lock)
+  (add-to-list 'load-path "~/.emacs.d/elpa/font-lock+")
+  (require 'font-lock+)
   (setq delete-old-versions t)		; delete excess backup versions silently
   (setq version-control nil)		; use version control
   (setq vc-make-backup-files nil)		; make backups file even when in version controlled dir
@@ -148,10 +150,11 @@
   ;;;(set-face-attribute 'mode-line nil :height 200)
   (set-default-font "DejaVu Sans Mono for Powerline 20")
   (defun my-minibuffer-setup ()
-    (let ((inhibit-message t))
+    (let ((message-log-max nil)
+          (inhibit-message t))
       (toggle-truncate-lines -1))
     (set (make-local-variable 'face-remapping-alist)
-	 '((default :height 1.1)))
+         '((default :height 1.1)))
     (with-current-buffer (get-buffer " *Echo Area 0*")
       (setq-local face-remapping-alist '((default (:height 1.2) variable-pitch))))
 
@@ -322,11 +325,12 @@
     ;; (define-key company-active-map [?\C-p] 'company-select-previous-or-abort)
     (add-to-list 'completion-styles 'initials) ; initials completion style is handy.
     ;; This is convenient.
-    (define-key company-active-map (kbd "TAB") 'company-complete-common-or-cycle)
-    (define-key company-active-map (kbd "<tab>") 'company-complete-common-or-cycle)
-    (define-key company-active-map (kbd "S-TAB") 'company-complete-common-or-previous-cycle)
-    (define-key company-active-map (kbd "<backtab>") 'company-complete-common-or-previous-cycle)
-    (define-key company-active-map (kbd "RET") nil)
+    (when company-active-map
+      (define-key company-active-map (kbd "TAB") 'company-complete-common-or-cycle)
+      (define-key company-active-map (kbd "<tab>") 'company-complete-common-or-cycle)
+      (define-key company-active-map (kbd "S-TAB") 'company-complete-common-or-previous-cycle)
+      (define-key company-active-map (kbd "<backtab>") 'company-complete-common-or-previous-cycle)
+      (define-key company-active-map (kbd "RET") nil))
 
     ;; Modify the original function so that it completes the previous cycle.
     (defun company-complete-common-or-previous-cycle (&optional arg)
@@ -576,9 +580,12 @@
        :config
        (with-eval-after-load 'projectile
          (projectile-global-mode 1)
-         (setq projectile-completion-system 'ivy)
          (define-key projectile-mode-map [?\s-d] 'projectile-command-map)
-         (setf projectile-generic-command "find -L . -type f -print0")))
+         (setq projectile-completion-system 'ivy
+               projectile-git-submodule-command nil
+               projectile-indexing-method 'native
+               projectile-enable-caching t
+               projectile-generic-command "find -L . -type f -print0")))
    #+END_SRC
 
 ** AMX
@@ -629,6 +636,10 @@
      ;; 	     ;; %c print the current column
      ;; 	     (line-number-mode ("%l" (column-number-mode ":%c")))))
 
+     (defface durand-custom-mode-face '((t (:foreground "red")))
+       "Face used for displaying hydra presence")
+
+     ;;;###autoload
      (defun my-position ()
        "My function of mode-line-position"
        (cond
@@ -639,18 +650,17 @@
 
      (defun propertized-buffer-identification (fmt)
        "Return a list suitable for `mode-line-buffer-identification'.
-     FMT is a format specifier such as \"%12b\".  This function adds
-     text properties for face, help-echo, and local-map to it."
+          FMT is a format specifier such as \"%12b\".  This function adds
+          text properties for face, help-echo, and local-map to it."
        (list (propertize fmt
                          'face 'mode-line-buffer-id
                          'help-echo
-                         (purecopy "Nom du tampon
-     souris-1: Dernier tampon\nsouris-3: Prochain tampon")
+                         (purecopy "Nom du tampon\nsouris-1: Dernier tampon\nsouris-3: Prochain tampon")
                          'mouse-face 'mode-line-highlight
                          'local-map mode-line-buffer-identification-keymap)))
 
      (setq-default mode-line-buffer-identification
-                   (propertized-buffer-identification " %b "))
+                   (propertized-buffer-identification "%b"))
 
      (defun my-mode-line-modified ()
        (propertize
@@ -659,27 +669,32 @@
              (propertize "M " 'face '(:foreground "DarkGoldenrod2"))
            " ")
          (if (not (buffer-file-name))
-             (propertize "N " 'face '(:foreground "LightSkyBlue3"))
+             (propertize "N " 'face '(:foreground "CadetBlue2"))
            " ")
          (if buffer-read-only
              (propertize "R " 'face '(:foreground "IndianRed1"))
            " "))
         'help-echo "M: modifié 
-     N: C'est peut-être pas un fichier
+     N: peut-être pas un fichier
      R: seulement pour lire"))
 
      (defvar durand-custom-modeline ""
        "A custom variable to set for customisation")
 
-     (set-face-attribute 'durand-custom-mode-face nil :foreground "#39bf4c")
-     (setq durand-custom-modeline "I ")
+     (set-face-attribute 'durand-custom-mode-face nil
+                         ;; :foreground "#d99f21"
+                         :foreground "goldenrod1"
+                         :inherit nil
+                         :height 1.0)
+     (setq durand-custom-modeline (propertize "S"
+                                              'help-echo "spécifique"))
 
-     (defface durand-mode-line-client-face '((t . (:foreground "CadetBlue2")))
+     (defface durand-mode-line-client-face '((t . (:foreground "LightSkyBlue3")))
        "Face for mode line client construct")
 
      (defun durand-mode-line-buffer-name ()
        "trimmed buffer name"
-       (let ((orig (format-mode-line (propertized-buffer-identification "%b")))
+       (let ((orig (format-mode-line (propertized-buffer-identification " %b")))
              (max 35))
          (if (> (length orig) max)
              (truncate-string-to-width orig max nil nil t)
@@ -716,8 +731,8 @@
                      " %n "
                      mode-line-misc-info
                      mode-line-end-spaces))
-                     ;; mode-line-modes -- I don't want all those minor modes information
-                     ;; " %I "
+     ;; mode-line-modes -- I don't want all those minor modes information
+     ;; " %I "
 
 
      (setq durand-default-mode-line-format mode-line-format)
@@ -738,7 +753,9 @@
           (setq mode-line-format nil)
           (force-mode-line-update))
          ((guard (equal major-mode 'pdf-view-mode))
-          (message "Nom: %s, page: %d, total: %d"
+          (message "Nom: %s,
+     page: %d,
+     total: %d"
                    (buffer-name)
                    (pdf-view-current-page)
                    (pdf-cache-number-of-pages)))
@@ -777,8 +794,6 @@
 
      ;; (defface durand-custom-mode-face '((t (:foreground "red" :inherit mode-line)))
      ;;   "Face used for displaying hydra presence")
-     (defface durand-custom-mode-face '((t (:foreground "red")))
-       "Face used for displaying hydra presence")
    #+END_SRC
 
 ** lispy mode
@@ -1255,22 +1270,43 @@
              ("latex" "Λ" :prefix)
              ("buffer" "β")
              ("dired" "δ")
-             ("messages" "M")
+             ("messages" "")
              ("fundamental" "φ")
              ("mu4e" "μ")
              ("main" "Μ")
              ("update" "υ")
-             ("headers" "tête")
-             ("help" "H")
+             ("headers" "")
+             ("help" "♥")
              ("pdf" "Π")
              ("view" "v")
              ("durand" "Δ")
+             ("timer" "")
+             ("list" "")
              ("interaction" "int")))
      (cyphejor-mode 1)
 
      ;; (advice-remove 'mu4e-headers-search-bookmark  (lambda (&rest args) (cyphejor-mode 1)))
      ;; (advice-remove 'mu4e-headers-search  (lambda (&rest args) (cyphejor-mode 1)))
      ;; (advice-remove 'mu4e~headers-jump-to-maildir  (lambda (&rest args) (cyphejor-mode 1)))
+   #+end_src
+** alltheicons
+   I like pretty icons
+
+   #+begin_src emacs-lisp
+     (use-package all-the-icons
+       :ensure t)
+
+     (use-package all-the-icons-dired
+       :ensure t
+       :hook (dired-mode . all-the-icons-dired-mode))
+   #+end_src
+** evil-numbers
+
+   #+begin_src emacs-lisp
+     (add-to-list 'load-path (expand-file-name "evil-numbers"
+                                               (expand-file-name "elpa" user-emacs-directory)))
+
+     (require 'evil-numbers)
    #+end_src
 
 * archive
@@ -1380,3 +1416,5 @@
        (add-hook 'mhtml-mode-hook 'emmet-mode)
        (add-hook 'css-mode-hook 'emmet-mode))
    #+END_SRC
+
+   

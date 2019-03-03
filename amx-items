@@ -1,13 +1,13 @@
 
 ;; ----- amx-history -----
 (
- auto-fill-mode
- org-mode
- emacs-lisp-mode
- fundamental-mode
- org-md-export-to-markdown
- org-export-dispatch
- load-library
+ projectile-find-file
+ project-find-file
+ projectile-switch-project
+ package-list-packages
+ projectile-invalidate-cache
+ rainbow-mode
+ musique
 )
 
 ;; ----- amx-data -----
@@ -25,11 +25,11 @@
  (haskell-process-generate-tags . 2)
  (haskell-session-change . 2)
  (haskell-interactive-bring . 1)
- (list-colors-display . 5)
- (plain-TeX-mode . 12)
- (org-mode . 93)
- (emacs-lisp-mode . 23)
- (auto-fill-mode . 18)
+ (list-colors-display . 6)
+ (plain-TeX-mode . 14)
+ (org-mode . 95)
+ (emacs-lisp-mode . 28)
+ (auto-fill-mode . 27)
  (org-cut-subtree . 2)
  (package-autoremove . 5)
  (isearch-forward . 7)
@@ -41,7 +41,7 @@
  (mu4e-compose-edit . 2)
  (save-buffer . 1)
  (recentf-edit-list . 1)
- (package-list-packages . 10)
+ (package-list-packages . 12)
  (emacs-uptime . 8)
  (emacs-init-time . 6)
  (counsel-grep . 3)
@@ -63,7 +63,7 @@
  (counsel-describe-face . 8)
  (elfeed-show-refresh . 1)
  (plain-tex-mode . 27)
- (fundamental-mode . 62)
+ (fundamental-mode . 68)
  (org-toggle-heading . 4)
  (garbage-collect . 10)
  (durand-test . 3)
@@ -78,7 +78,7 @@
  (wdired-change-to-wdired-mode . 2)
  (org-sparse-tree . 1)
  (toggle-truncate-lines . 1)
- (revert-buffer . 2)
+ (revert-buffer . 3)
  (recover-this-file . 1)
  (org-occur . 1)
  (occur-next-error . 2)
@@ -102,12 +102,12 @@
  (list-processes . 2)
  (org-update-account . 1)
  (org-get-account-entries . 22)
- (durand-music . 16)
+ (durand-music . 17)
  (red-message . 2)
  (org-timer-pause-or-continue . 5)
  (automaton . 1)
  (two-automaton . 1)
- (rover . 1)
+ (rover . 167)
  (cnfonts-edit-profile . 6)
  (cnfonts-increase-fontsize . 1)
  (cnfonts-decrease-fontsize . 3)
@@ -138,11 +138,11 @@
  (pdf-view-last-page . 1)
  (pdf-outline-move-to-current-page . 1)
  (pdf-view-previous-page . 1)
- (durand-update-music . 27)
+ (durand-update-music . 30)
  (dired . 1)
  (music . 22)
  (durand-music-mode . 4)
- (musique . 22)
+ (musique . 29)
  (durand-chercher-musique . 65)
  (durand-sign . 37)
  (ansi-term . 9)
@@ -150,7 +150,7 @@
  (shell . 2)
  (ptt . 7)
  (transpose-chars-back-N . 2)
- (durand-chercher-pdf . 69)
+ (durand-chercher-pdf . 76)
  (describe-font . 1)
  (getenv . 1)
  (counsel-faces . 1)
@@ -164,7 +164,7 @@
  (command-log-mode . 1)
  (global-command-log-mode . 1)
  (eww . 1)
- (macrostep-expand . 4)
+ (macrostep-expand . 7)
  (test/body . 2)
  (test . 8)
  (edit-kbd-macro . 5)
@@ -173,9 +173,25 @@
  (durand-copy-line-or-region . 5)
  (eval-region . 1)
  (describe-function . 4)
- (rainbow-mode . 1)
+ (rainbow-mode . 19)
  (org-agenda-jump-to-novels . 1)
  (org-export-dispatch . 13)
- (load-library . 2)
+ (load-library . 4)
  (org-md-export-to-markdown . 1)
+ (all-the-icons-install-fonts . 2)
+ (all-the-icons-insert-fileicon . 1)
+ (all-the-icons-insert-material . 1)
+ (all-the-icons-insert-octicon . 1)
+ (all-the-icons-insert-wicon . 1)
+ (all-the-icons-insert . 45)
+ (version . 1)
+ (what-cursor-position . 7)
+ (tetris . 1)
+ (durand-capture . 3)
+ (count-words-region . 1)
+ (list-timers . 2)
+ (project-find-file . 11)
+ (projectile-switch-project . 4)
+ (projectile-invalidate-cache . 3)
+ (projectile-find-file . 2)
 )
