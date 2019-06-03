@@ -1,0 +1,13 @@
+# -*- mode: snippet -*-
+# name: tabular
+# key: tab
+# --
+\large{
+  \begin{center}
+    \begin{tabular}{${1: l l l }}
+      $2
+    \end{tabular}
+  \end{center}
+}
+
+$0

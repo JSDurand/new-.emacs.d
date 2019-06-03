@@ -13,18 +13,24 @@
         end-of-visual-line
         eval-last-sexp
         eval-rep
+        evil-insert
         forward-sexp
         forward-to-word
+        general-hydra/body
         general-hydra/dabbrev-expand
         general-hydra/forward-word
         general-hydra/lambda-d
         general-hydra/lambda-f
+        general-hydra/lambda-s-g
+        general-hydra/nil
         indent-for-tab-command
         insert-hydra/general-hydra/body-and-exit
         iy-go-to-char--command
         kbd-macro-query
         kill-region
+        kill-sexp
         lispy-backtick
+        lispy-backward
         lispy-backward-kill-word
         lispy-braces
         lispy-brackets
@@ -124,6 +130,8 @@
         counsel-find-file
         describe-key
         durand-delete-pair
+        durand-other-buffer
+        evil-normal-state
         general-hydra/insert-hydra/body-and-exit
         general-hydra/mc/mark-next-like-this
         general-hydra/mc/mark-previous-like-this

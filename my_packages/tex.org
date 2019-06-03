@@ -412,7 +412,7 @@
      (define-key abbrev-prefix-map "S" (lambda () (interactive) (insert "\\Sigma")))
      (define-key abbrev-prefix-map "P" (lambda () (interactive) (insert "\\Pi")))
      (define-key abbrev-prefix-map "X" (lambda () (interactive) (insert "\\Xi")))
-     (define-key abbrev-prefix-map "L" (lambda () (interactive) (insert "\\Lambda")))
+     (define-key abbrev-prefix-map "L" (lambda () (interactive) (insert "\\lambda")))
      (define-key abbrev-prefix-map "J" (lambda () (interactive) (insert "\\Theta")))
      (define-key abbrev-prefix-map "G" (lambda () (interactive) (insert "\\Gamma")))
      (define-key abbrev-prefix-map "D" (lambda () (interactive) (insert "\\Delta")))
@@ -442,6 +442,7 @@
      (define-key abbrev-prefix-map "+" (lambda () (interactive) (insert "\\sum")))
      (define-key abbrev-prefix-map "0" (lambda () (interactive) (insert "\\circ")))
      (define-key abbrev-prefix-map "c" 'read-tex-complete)
+     (define-key abbrev-prefix-map (kbd "<return>") (lambda () (interactive) (insert "\n\\item{}\n")))
 
      ;; (defhydra abbrev-prefix-hydra (:color red)
      ;;   "insert"
@@ -866,33 +867,80 @@
        (interactive)
        (make-variable-buffer-local 'er/try-expand-list)
        (setf (nthcdr 9 er/try-expand-list)
-             (append '(durand-mark-math)
+             (append '(durand-mark-inside-math durand-mark-outside-math)
                      (nthcdr 9 er/try-expand-list))))
 
      ;;;###autoload
-     (defun durand-mark-math ()
-       "mark inside $$ in tex mode"
-       (interactive)
-       (let ((pt (point)))
-         (condition-case nil
-             (when (ignore-errors
-                     (or (equal (get-text-property (point) 'face) 'tex-math)
-                         (memq 'tex-math (get-text-property (point) 'face))
-                         (and (equal (get-text-property (point) 'face) 'show-paren-match)
-                              (or (equal (get-text-property (1+ (point)) 'face) 'tex-math)
-                                  (memq 'tex-math (get-text-property (1+ (point)) 'face))
-                                  (equal (get-text-property (1- (point)) 'face) 'tex-math)
-                                  (memq 'tex-math (get-text-property (1- (point)) 'face))))))
-               (re-search-forward "$+" nil t)
-               (save-excursion
-                 (forward-sexp -1)
-                 (push-mark nil nil t))
-               (exchange-point-and-mark))
-           (scan-error
-            (goto-char pt)
-            (user-error "Not inside $$")))))
+     ;; (defun durand-mark-outside-math ()
+     ;;   "mark inside $$ in tex mode"
+     ;;   (interactive)
+     ;;   (let ((pt (point)))
+     ;;     (condition-case nil
+     ;;         (when (ignore-errors
+     ;;                 (or (equal (get-text-property (point) 'face) 'tex-math)
+     ;;                     (memq 'tex-math (get-text-property (point) 'face))
+     ;;                     (and (equal (get-text-property (point) 'face) 'show-paren-match)
+     ;;                          (or (equal (get-text-property (1+ (point)) 'face) 'tex-math)
+     ;;                              (memq 'tex-math (get-text-property (1+ (point)) 'face))
+     ;;                              (equal (get-text-property (1- (point)) 'face) 'tex-math)
+     ;;                              (memq 'tex-math (get-text-property (1- (point)) 'face))))))
+     ;;           (re-search-forward "$+" nil t)
+     ;;           (save-excursion
+     ;;             (forward-sexp -1)
+     ;;             (push-mark nil nil t))
+     ;;           (exchange-point-and-mark))
+     ;;       (scan-error
+     ;;        (goto-char pt)
+     ;;        (user-error "Not inside $$")))))
 
-     (er/enable-mode-expansions 'plain-tex-mode 'er/add-plain-tex-mode-expansions)
+     ;;;###autoload
+     (defun durand-mark-inside-math ()
+       "Temporarily alter the syntax table"
+       (interactive)
+       (with-syntax-table (copy-syntax-table (syntax-table))
+         (modify-syntax-entry ?$ "\"$")
+         (er/mark-inside-quotes)))
+
+     ;;;###autoload
+     (defun durand-mark-outside-math ()
+       "Temporarily alter the syntax table"
+       (interactive)
+       (with-syntax-table (copy-syntax-table (syntax-table))
+         (modify-syntax-entry ?$ "\"$")
+         (er/mark-outside-quotes)))
+
+     (ignore-errors (er/enable-mode-expansions 'plain-tex-mode 'er/add-plain-tex-mode-expansions))
+
+     (defvar durand-latin-mode-map (make-sparse-keymap)
+       "Keymap for the minor mode `durand-latin-mode'")
+
+     (define-minor-mode durand-latin-mode
+       "Minor mode for quickly entering latin special letters."
+       nil
+       "Latin"
+       durand-latin-mode-map)
+
+     (define-prefix-command 'enter-latin-special-symbol)
+
+     (define-key enter-latin-special-symbol [?a] (lambda () (interactive) (insert "ā")))
+     (define-key enter-latin-special-symbol [?e] (lambda () (interactive) (insert "ē")))
+     (define-key enter-latin-special-symbol [?i] (lambda () (interactive) (insert "ī")))
+     (define-key enter-latin-special-symbol [?o] (lambda () (interactive) (insert "ō")))
+     (define-key enter-latin-special-symbol [?u] (lambda () (interactive) (insert "ū")))
+
+     (define-key enter-latin-special-symbol [?A] (lambda () (interactive) (insert "Ā")))
+     (define-key enter-latin-special-symbol [?E] (lambda () (interactive) (insert "Ē")))
+     (define-key enter-latin-special-symbol [?I] (lambda () (interactive) (insert "Ī")))
+     (define-key enter-latin-special-symbol [?O] (lambda () (interactive) (insert "Ō")))
+     (define-key enter-latin-special-symbol [?U] (lambda () (interactive) (insert "Ū")))
+
+     (define-key enter-latin-special-symbol [?\r] (lambda ()
+                                                    (interactive)
+                                                    (if current-prefix-arg
+                                                        (insert "\n\\item[]\n  ")
+                                                      (insert "\n\\item{}\n  "))))
+
+     (define-key durand-latin-mode-map [?ù] 'enter-latin-special-symbol)
    #+END_SRC
 ** Moving around
    Try to make navigating tex files become easier and easier.

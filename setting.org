@@ -325,7 +325,7 @@
     ;; (define-key company-active-map [?\C-p] 'company-select-previous-or-abort)
     (add-to-list 'completion-styles 'initials) ; initials completion style is handy.
     ;; This is convenient.
-    (when company-active-map
+    (ignore-errors
       (define-key company-active-map (kbd "TAB") 'company-complete-common-or-cycle)
       (define-key company-active-map (kbd "<tab>") 'company-complete-common-or-cycle)
       (define-key company-active-map (kbd "S-TAB") 'company-complete-common-or-previous-cycle)
@@ -411,7 +411,7 @@
         (goto-char (point-min)))
       (display-buffer doc-buffer t)))
 
-  (define-key company-active-map (kbd "<f1>") #'durand/company-show-doc-buffer)
+  (ignore-errors (define-key company-active-map (kbd "<f1>") #'durand/company-show-doc-buffer))
 #+END_SRC
 
 ** tex commands
@@ -619,11 +619,11 @@
 
    #+BEGIN_SRC emacs-lisp
      (column-number-mode 1)
-     (set-face-attribute 'mode-line-buffer-id nil :background "gray10" :foreground "DarkOrange1")
+     (set-face-attribute 'mode-line-buffer-id nil :background "gray20" :foreground "DarkOrange1" :box nil)
      ;; (set-face-font 'mode-line-buffer-id "DejaVu Sans Mono for Powerline")
      ;; (set-face-attribute 'mode-line-buffer-id nil :height 1.1)
      (set-face-attribute 'mode-line-highlight nil :box nil :background "deep sky blue")
-     (set-face-attribute 'mode-line-inactive  nil :background "gray10" :foreground "gray50")
+     (set-face-attribute 'mode-line-inactive  nil :background "#97cfda" :height 1.1 :foreground "gray20" :box nil)
 
      ;; (setq mode-line-position
      ;; 	   '(;; %p print percent of buffer above top of window, or Top, Bot or All
@@ -643,10 +643,29 @@
      (defun my-position ()
        "My function of mode-line-position"
        (cond
-        ((string= major-mode "pdf-view-mode")
-         mode-line-position)
-        ((string= major-mode "org-agenda-mode")
-         (org-agenda-show-blocks-number))))
+        ((derived-mode-p 'org-agenda-mode)
+         (org-agenda-show-blocks-number))
+        (t
+         " %l:%c")))
+
+     ;;;###autoload
+     (defun my-percent ()
+       "My function of mode-line-position"
+       (cond
+        ((derived-mode-p 'org-agenda-mode)
+         nil)
+        (t
+         (let* ((str "%p%% ")
+                (fstr (format-mode-line str)))
+           (cond
+            ((string-match " ?\\(Top\\|Bot\\|All\\)" fstr)
+             (concat (match-string 1 fstr) " "))
+            (t
+             str))))))
+
+     (setf old-mode-line-position mode-line-position)
+
+     (setf mode-line-position '(:eval (my-position)))
 
      (defun propertized-buffer-identification (fmt)
        "Return a list suitable for `mode-line-buffer-identification'.
@@ -689,16 +708,26 @@
      (setq durand-custom-modeline (propertize "S"
                                               'help-echo "spécifique"))
 
-     (defface durand-mode-line-client-face '((t . (:foreground "LightSkyBlue3")))
+     (defface durand-mode-line-client-face '((t . (:foreground "LightSkyBlue3" :box t)))
        "Face for mode line client construct")
 
      (defun durand-mode-line-buffer-name ()
        "trimmed buffer name"
-       (let ((orig (format-mode-line (propertized-buffer-identification " %b")))
-             (max 35))
-         (if (> (length orig) max)
-             (truncate-string-to-width orig max nil nil t)
-           orig)))
+       (let* ((orig (format-mode-line (propertized-buffer-identification " %b")))
+              (max 35)
+              (real-name (cond
+                          ((> (length orig) max)
+                           (truncate-string-to-width orig max nil nil t))
+                          (t
+                           orig)))
+              (tail (when (buffer-modified-p) (propertize "| + " 'face '(:background "gray20"))))
+              (not-file (when (null (buffer-file-name)) (propertize "| N " 'face '(:background "gray20"))))
+              (RO (when buffer-read-only (propertize " RO |" 'face '(:background "gray20")))))
+         (string-join (append
+                       (list RO)
+                       (propertized-buffer-identification real-name)
+                       (list (propertize " " 'face '(:background "gray20")))
+                       (list not-file tail)))))
 
      (defun durand-mode-line-client ()
        "Custom mode line client construct"
@@ -708,27 +737,115 @@
         'face 'durand-mode-line-client-face
         'help-echo "un client d'emacs"))
 
+     (setf my-mode-line-buffer-name '(:eval (durand-mode-line-buffer-name)))
+
+     ;; From https://emacs.stackexchange.com/questions/26222/
+     (defvar ml-selected-window nil)
+
+     (defun ml-record-selected-window ()
+       (setq ml-selected-window (selected-window)))
+
+     (defun ml-update-all ()
+       (force-mode-line-update t))
+
+     ;; (remove-hook 'post-command-hook 'ml-record-selected-window)
+
+     ;; (remove-hook 'buffer-list-update-hook 'ml-update-all)
+
+
+     ;; (defun durand-mode-line-right ()
+     ;;   "The right portion of the mode line"
+     ;;   (let* ((mode-line-before (remq 'mode-line-end-spaces mode-line-format))
+     ;;          (mode-line-string-before (format-mode-line mode-line-before))
+     ;;          (length-before (length mode-line-string-before))
+     ;;          (right '(:eval (my-position)))
+     ;;          (right-plain-string (format-mode-line right))
+     ;;          (right-padded-string (cond
+     ;;                                ((string-match "  $" right-plain-string)
+     ;;                                 right-plain-string)
+     ;;                                ((string-match " $" right-plain-string)
+     ;;                                 (mapconcat #'identity `(,right-plain-string " ") ""))
+     ;;                                (t
+     ;;                                 (mapconcat #'identity `(,right-plain-string "  ") ""))))
+     ;;          (right-string (propertize right-padded-string
+     ;;                                    'face '(:foreground "#97cfda" :background "gray20")))
+     ;;          (padding-total-length (cond
+     ;;                                 ((eq ml-selected-window
+     ;;                                      (selected-window))
+     ;;                                  (* 9 (/ (window-total-width) 11)))
+     ;;                                 (t
+     ;;                                  (window-total-width))))
+     ;;          (padding-length (- padding-total-length length-before (length right-string) -1))
+     ;;          (padding (when (> padding-length 0) (make-string padding-length 32))))
+     ;;     (string-join (list padding right-string))))
+
+     ;;;###autoload
+     (defun durand-mode-line-right ()
+       "The right portion of the mode line"
+       (let* ((right '((:eval (my-percent)) (:eval (my-position))))
+              (extra-space (cond
+                            ((string-match "^ " (format-mode-line '((:eval (my-percent))))) nil)
+                            ((string= (format-mode-line '((:eval (my-percent)))) "") nil)
+                            (t " ")))
+              ;; (right-plain-string (format-mode-line right))
+              ;; (right-padded-string (concat " " (cond
+              ;;                                   ((string-match " +$" right-plain-string)
+              ;;                                    (replace-match "" nil nil right-plain-string))
+              ;;                                   (t
+              ;;                                    right-plain-string))
+              ;;                              " "))
+              (right-string (concat
+                             (propertize (concat extra-space (format-mode-line '((:eval (my-percent)))))
+                                         'face '(:foreground "#97cfda" :background "gray20"))
+                             (propertize (concat (format-mode-line '((:eval (my-position)))) " ")
+                                         'face '(:foreground "gray20" :background "#97cfda"))))
+              (right-length (string-width right-string))
+              (fix (cond
+                    ((string-match "Top\\|Bot\\|All" right-string) 1)
+                    (t nil)))
+              (padding (propertize
+                        " "
+                        'display `((space :align-to (- (+ right right-margin right-fringe) ,right-length ,fix))))))
+         (string-join `(,padding ,right-string))))
+
+     (setf mode-line-end-spaces '(:eval (durand-mode-line-right)))
+
+     ;;;###autoload
+     (defun propertize-mode-name (fmt)
+       (propertize fmt
+                   'face '(:background "gray20" :foreground "gray")))
+
+     ;;;###autoload
+     (defun durand-mode-name ()
+       (propertize-mode-name (format-mode-line (mapconcat #'identity
+                                                          `("| %[" ,mode-name "%] "
+                                                            ,(when (buffer-narrowed-p)
+                                                               "| Narrow "))
+                                                          ""))))
+
      (setq-default mode-line-format
                    '("%e"
-                     mode-line-front-space
+                     (:eval (unless
+                                (string-equal (format-mode-line mode-line-front-space) " ")
+                              (propertize mode-line-front-space
+                                          'face '(:background "gray20"))))
                      ;; mode-line-mule-info -- I'm always on utf-8
-                     (:eval (durand-mode-line-client))
-                     (:eval (my-mode-line-modified))
+                     ;; (:eval (durand-mode-line-client))
+                     ;; (:eval (my-mode-line-modified))
                      ;; mode-line-remote -- no need to indicate this specially
                      ;; mode-line-frame-identification -- this is for text-mode emacs only
-                     (:eval (propertize durand-custom-modeline 'face 'durand-custom-mode-face))
-                     " "
+                     ;; (:eval (propertize durand-custom-modeline 'face 'durand-custom-mode-face))
+                     (:eval evil-mode-line-tag)
+                     ;; " "
                      (:eval (durand-mode-line-buffer-name))
-                     " "
+                     ;; " "
                      ;; mode-line-position
-                     (:eval (my-position))
-                     ;;(vc-mode vc-mode)  -- I use magit
+                     ;; (:eval (my-position))
+                     ;; (:eval (replace-regexp-in-string "^ Git" "" vc-mode ))  ;; -- I use magit
                      ;; (flycheck-mode flycheck-mode-line) -- I don't have this
-                     " %[ "
-                     mode-name
-                     " %] "
+                     (:eval (durand-mode-name))
                      ;; Only major mode
-                     " %n "
+                     ;; "%n"
                      mode-line-misc-info
                      mode-line-end-spaces))
      ;; mode-line-modes -- I don't want all those minor modes information
@@ -754,9 +871,11 @@
           (force-mode-line-update))
          ((guard (equal major-mode 'pdf-view-mode))
           (message "Nom: %s,
+     Pourcentes: %d
      page: %d,
      total: %d"
                    (buffer-name)
+                   (string-to-number (pdf-misc-size-indication))
                    (pdf-view-current-page)
                    (pdf-cache-number-of-pages)))
          ((pred null)
@@ -790,7 +909,7 @@
      (add-hook 'pdf-view-mode-hook (lambda () (durand-toggle-mode-line -1)))
 
      (set-face-attribute 'mode-line nil
-                         :background "gray10" :foreground "white" :height 1.3)
+                         :background "gray10" :foreground "gray" :height 1.1 :box nil)
 
      ;; (defface durand-custom-mode-face '((t (:foreground "red" :inherit mode-line)))
      ;;   "Face used for displaying hydra presence")
@@ -1268,20 +1387,20 @@
              ("tex" "τ")
              ("plain" "π")
              ("latex" "Λ" :prefix)
-             ("buffer" "β")
+             ("buffer" "b")
              ("dired" "δ")
-             ("messages" "")
-             ("fundamental" "φ")
-             ("mu4e" "μ")
+             ("messages" "mes")
+             ("fundamental" "F")
+             ("mu4e" "m")
              ("main" "Μ")
-             ("update" "υ")
-             ("headers" "")
-             ("help" "♥")
-             ("pdf" "Π")
+             ("update" "u")
+             ("headers" "h")
+             ("help" "H")
+             ("pdf" "P")
              ("view" "v")
-             ("durand" "Δ")
-             ("timer" "")
-             ("list" "")
+             ("durand" "D")
+             ("timer" "t")
+             ("list" "L")
              ("interaction" "int")))
      (cyphejor-mode 1)
 
@@ -1307,6 +1426,383 @@
                                                (expand-file-name "elpa" user-emacs-directory)))
 
      (require 'evil-numbers)
+   #+end_src
+** noccur
+   Sounds good
+
+   #+begin_src emacs-lisp
+     (use-package noccur
+       :ensure t)
+   #+end_src
+** evil
+   I think I shall *evil-mode* a try again.
+
+   #+begin_src emacs-lisp
+     (add-to-list 'load-path (expand-file-name "evil" user-emacs-directory))
+
+     (require 'evil)
+
+     (evil-mode 1)
+
+
+     ;; evil-surround
+
+     ;; load evil-surround before others in order to avoid conflicts
+
+     (use-package evil-surround
+       :ensure t
+       :config
+       (global-evil-surround-mode 1)
+       (add-hook 'emacs-lisp-mode-hook
+        (lambda ()
+          (push '(?` . ("`" . "'"))
+                evil-surround-pairs-alist))))
+
+     (setf evil-normal-state-cursor   'box
+           evil-emacs-state-cursor    '(bar . 7)
+           evil-insert-state-cursor   'bar
+           evil-visual-state-cursor   'bar
+           evil-motion-state-cursor   'bar
+           evil-replace-state-cursor  'hbar
+           evil-operator-state-cursor 'hbar)
+
+     (setf evil-cross-lines t)
+     (setf evil-emacs-state-modes (delq 'pdf-view-mode evil-emacs-state-modes))
+     (setf evil-search-module 'evil-search)
+
+     (setf evil-overriding-maps (delete '(grep-mode-map) evil-overriding-maps))
+
+     (evil-set-initial-state 'dired-mode 'motion)
+
+     (define-key dired-mode-map [?\d] nil)
+     (define-key dired-mode-map [32] nil)
+     (define-key dired-mode-map [?x] nil)
+     (ignore-errors
+       (define-key grep-mode-map [?x] nil)
+       (define-key grep-mode-map [32] nil))
+
+     ;; (setq evil-normal-state-tag   (propertize " NORMAL " 'face '((:foreground "cornflowerblue" :background "gray20")))
+     ;;       evil-emacs-state-tag    (propertize " EMACS " 'face '((:foreground "#39bf4c" :background "gray20")))
+     ;;       evil-insert-state-tag   (propertize " INSERT " 'face '((:foreground "green" :background "gray20")))
+     ;;       evil-replace-state-tag  (propertize " REPLACE " 'face '((:foreground "red" :background "gray20")))
+     ;;       evil-motion-state-tag   (propertize " MOTION " 'face '((:foreground "orange" :background "gray20")))
+     ;;       evil-visual-state-tag   (propertize " VISUAL " 'face '((:foreground "goldenrod1" :background "gray20")))
+     ;;       evil-operator-state-tag (propertize " OPERATOR " 'face '((:foreground "pink" :background "gray20"))))
+
+     (setq evil-normal-state-tag   (propertize " NORMAL " 'face '((:foreground "gray20" :background "cornflowerblue")))
+           evil-emacs-state-tag    (propertize " EMACS " 'face '((:foreground "gray20" :background "#39bf4c")))
+           evil-insert-state-tag   (propertize " INSERT " 'face '((:foreground "gray20" :background "green")))
+           evil-replace-state-tag  (propertize " REPLACE " 'face '((:foreground "gray20" :background "red")))
+           evil-motion-state-tag   (propertize " MOTION " 'face '((:foreground "gray20" :background "orange")))
+           evil-visual-state-tag   (propertize " VISUAL " 'face '((:foreground "gray20" :background "goldenrod1")))
+           evil-operator-state-tag (propertize " OPERATOR " 'face '((:foreground "gray20" :background "pink"))))
+
+     (evil-define-key nil evil-insert-state-map
+       [home] 'evil-normal-state)
+
+     (evil-define-key nil evil-visual-state-map
+       [home] 'evil-exit-visual-state)
+
+     (evil-define-key nil evil-replace-state-map
+       [home] 'evil-normal-state)
+
+     (evil-define-key nil evil-emacs-state-map
+       [home] 'evil-normal-state)
+
+
+     ;;;###autoload
+     (define-prefix-command 'evil-projectile-map)
+
+     (define-key evil-projectile-map [?f] 'projectile-find-file)
+     (define-key evil-projectile-map [?p] 'projectile-switch-project)
+
+
+     ;; ret
+     (define-prefix-command 'durand-evil-ret-map)
+
+     (evil-define-key nil durand-evil-ret-map
+       "\"" 'transpose-chars-back-4
+       [?j] 'jump-to-other-window-link
+       [?P] 'evil-backward-sentence-begin
+       [?p] 'evil-forward-sentence-begin
+       [?s] 'durand-open-browser
+       [?,] 'evil-window-top
+       [?\r] 'durand-open-link
+       [?\;] 'evil-window-middle
+       [?:] 'evil-window-bottom
+       [?o] 'evil-jump-backward
+       [?a] (lambda ()
+              (interactive)
+              (org-agenda nil "o"))
+       [?e] 'durand-eval
+       [?t] (lambda ()
+              (interactive)
+              (if current-prefix-arg
+                  (make-process
+                   :name "terminal"
+                   :command '("open" "-a" "terminal")
+                   :buffer nil)
+                (eshell)))
+       [?x] 'exchange-point-and-mark
+       [?w] 'durand-next-window-or-frame
+       [?W] 'ace-select-window
+       [?u] 'undo-tree-visualize)
+
+     ;; spc ret
+     (define-prefix-command 'durand-evil-spc-ret-map)
+
+     (evil-define-key nil durand-evil-spc-ret-map
+       [?g] 'revert-buffer
+       [?B] 'org-open-bookmarks
+       [?b] 'describe-bindings
+       [?f] 'counsel-describe-function
+       [?k] 'describe-key
+       [?v] 'counsel-describe-variable
+       [?l] 'org-open-articles
+       [?n] 'org-open-novels
+       [?y] 'org-open-youtube
+       [?d] 'delete-rectangle
+       [?c] (lambda ()
+              (interactive)
+              (cond (current-prefix-arg (durand-capture))
+                    (t (org-capture))))
+       [?s] (lambda ()
+              (interactive)
+              (cond
+               ((null durand-stop-timer)
+                (setf durand-stop-timer
+                      (run-with-timer
+                       (* (if (null current-prefix-arg)
+                              60
+                            (read-number "Quels minutes?" 60))
+                          60)
+                       nil
+                       'durand-stop-reminder))
+                (list-timers))
+               ((timerp durand-stop-timer)
+                (cancel-timer durand-stop-timer)
+                (setf durand-stop-timer nil))
+               (t
+                (user-error "Unknown situation"))))
+       [?r] 'string-rectangle)
+
+     ;; space
+     (define-prefix-command 'durand-evil-space-map)
+
+     (evil-define-key nil durand-evil-space-map
+       [?x] ctl-x-map
+       [?n] 'evil-ex-nohighlight
+       [?=] 'align-regexp
+       [?m] 'durand-mu4e
+       [?M] 'mu4e
+       [?%] 'widen
+       [?u] (lambda ()
+              (interactive)
+              (if current-prefix-arg (org-store-link nil t)
+                (mu4e-update-mail-and-index nil)))
+       [?é] 'split-window-below
+       [?\"] 'split-window-right
+       [?X] 'ace-swap-window
+       [?o] 'durand-new-buffer
+       [?O] 'make-blank-space
+       [?c] 'clean-up-buffers
+       [?C] 'clean-up-buffers-regex
+       [?j] 'durand-bookmark-jump-headlong
+       [?J] 'bookmark-set
+       [?r] 'durand-recentf-jump-headlong
+       [?g] 'backward-or-up-sexp
+       [?h] 'forward-or-up-sexp
+       [?H] help-map
+       [?s] 'durand-cap-sentence
+       [?-] 'negative-argument
+       [?p] evil-projectile-map
+       [?\r] durand-evil-spc-ret-map
+       [?b] 'durand-switch-buffer
+       [?k] 'durand-kill-buffer
+       [?l] 'kill-other-buffer-window
+       [?f] 'counsel-find-file
+       [?'] 'durand-edit-special
+       [?w] 'delete-other-windows
+       [?W] 'delete-window
+       [?q] 'quit-other-window
+       [?z] 'capitalize-region-or-word
+       [?t] 'avy-goto-char-timer
+       [?:] 'durand-comment-dwim
+       [?,] 'evil-goto-first-line
+       [?\;] 'evil-goto-line
+       [?\s-x] (lambda ()
+                 (interactive)
+                 (setq display-line-numbers
+                       (and (null display-line-numbers)
+                            'relative)))
+       [?e] 'durand-wrap-region-with)
+
+     ;; $
+     (define-prefix-command 'durand-evil-dollar-map)
+
+     (evil-define-key nil durand-evil-dollar-map
+       [?\d] 'back-to-indentation
+       [?$] (lambda () (interactive) (recenter 0))
+       [?m] (lambda () (interactive) (recenter (/ (window-body-height) 2)))
+       [?-] (lambda () (interactive) (recenter -3))
+       [?£] 'org-retreat)
+
+     ;; motion map
+
+     (evil-define-key nil evil-motion-state-map
+       [home] 'evil-normal-state
+       [32] durand-evil-space-map
+       [?\r] durand-evil-ret-map
+       [?\d] 'durand-other-buffer
+       [?$] durand-evil-dollar-map
+       [?i] 'evil-emacs-state
+       [40] 'universal-argument
+       [?x] 'amx
+       [?Q] 'quit-window)
+
+     ;; normal mode
+
+     (evil-define-key nil evil-normal-state-map
+       [home] 'evil-emacs-state
+       [?x] 'amx
+       [?X] (lambda ()
+              (interactive)
+              (pcase major-mode
+                ('mu4e-headers-mode
+                 (mu4e-mark-execute-all t))
+                (_
+                 (user-error "Not in mu4e-headers-mode"))))
+       [backspace] 'durand-other-buffer
+       [32] durand-evil-space-map
+       [?\r] durand-evil-ret-map
+       [?\)] 'durand-end-of-line-or-block
+       [?s] 'durand-general-save-buffer
+       [f10] 'durand-general-save-buffer
+       [f9] (lambda () (interactive) (when (functionp durand-tex-action) (funcall durand-tex-action)))
+       [?U] 'undo-tree-redo
+       [?t] 'transpose-chars
+       [?T] 'durand-show-current-time
+       "&" 'transpose-chars-back-2
+       "é" 'transpose-chars-back-3
+       [?\"] 'evil-use-register
+       [?'] 'fill-paragraph
+       [?£] 'org-advance
+       [?$] durand-evil-dollar-map
+       [?i] 'evil-insert-state
+       [?j] 'evil-next-visual-line
+       [?k] 'evil-previous-visual-line
+       [?+] 'eval-expression
+       "," 'evil-repeat-find-char-reverse
+       ";" 'evil-repeat-find-char
+       ;; [?,] (lambda () (interactive) (durand-buffer-scroll 'up))
+       ;; [?\;] (lambda () (interactive) (durand-buffer-scroll 'down))
+       [??] (lambda () (interactive) (durand-buffer-scroll 'up 1))
+       [32 ?.] (lambda () (interactive) (durand-buffer-scroll 'down 1)) ; I like the repeat operator after all.
+       [?.] 'evil-repeat
+       [?§] (lambda () (interactive) (durand-buffer-scroll 'up nil t))
+       [?è] (lambda () (interactive) (durand-buffer-scroll 'down nil t))
+       [?!] (lambda () (interactive) (durand-buffer-scroll 'up 1 t))
+       [?ç] (lambda () (interactive) (durand-buffer-scroll 'down 1 t))
+       [?Q] 'quit-window
+       [?p] 'evil-paste-after
+       [?\s-m] 'durand-toggle-mode-line
+       [?ù] 'evil-goto-mark
+       [?S] 'cycle-spacing
+       [?z] 'downcase-region-or-word
+       [?Z] 'upcase-region-or-word
+       (kbd "C-SPC") 'set-mark-command
+       [?=] 'evil-ex-search-forward
+       [?/] 'counsel-grep-or-swiper
+       [?<] 'er/expand-region
+       [?>] 'er/contract-region
+       (kbd "<S-backspace>") 'durand-next-real-buffer
+       (kbd "SPC <S-backspace>") 'durand-previous-real-buffer
+       [?-] (lambda () (interactive) (durand-buffer-scroll 'up))
+       [?_] (lambda () (interactive) (durand-buffer-scroll 'down))
+       [?\t] (lambda ()
+               "org-cycle or indent-for-tab-command"
+               (interactive)
+               (cond
+                ((derived-mode-p 'org-mode)
+                 (org-cycle current-prefix-arg))
+                (t
+                 (indent-for-tab-command current-prefix-arg))))
+       [?J] 'evil-join
+       [?\M-o] 'evil-jump-forward
+       [?\C-a] 'evil-numbers/inc-at-pt
+       [?\C-x] 'evil-numbers/dec-at-pt
+       [?\(] 'universal-argument
+       [?à] 'durand-beginning-of-line-or-block)
+
+     ;; universal argument mode
+     (define-key universal-argument-map [?\(] 'universal-argument-more)
+
+     (defun universal-argument--description ()
+       (when prefix-arg
+         (concat "("
+                 (pcase prefix-arg
+                   (`(-) " -")
+                   (`(,(and (pred integerp) n))
+                    (let ((str ""))
+                      (while (and (> n 4) (= (mod n 4) 0))
+                        (setq str (concat str " ("))
+                        (setq n (/ n 4)))
+                      (if (= n 4) str (format " %s" prefix-arg))))
+                   (_ (format " %s" prefix-arg))))))
+
+
+     ;; end of visual line
+
+     (defun evil-append-line (count &optional vcount)
+       "Switch to Insert state at the end of the current visual line.
+     The insertion will be repeated COUNT times.  If VCOUNT is non nil
+     it should be number > 0. The insertion will be repeated in the
+     next VCOUNT - 1 lines below the current one."
+       (interactive "p")
+       (evil-end-of-visual-line)
+       (setq evil-insert-count count
+             evil-insert-lines nil
+             evil-insert-vcount
+             (and vcount
+                  (> vcount 1)
+                  (list (line-number-at-pos)
+                        #'end-of-visual-line
+                        vcount)))
+       (evil-insert-state 1))
+
+     ;; text objects
+
+     ;; From https://stackoverflow.com/questions/18102004/
+
+     (defmacro define-and-bind-text-object (name key start-regex end-regex)
+       (let ((inner-name (make-symbol (concat "evil-inner-" name)))
+             (outer-name (make-symbol (concat "evil-outer-" name))))
+         `(progn
+            (evil-define-text-object ,inner-name (count &optional beg end type)
+              (evil-select-paren ,start-regex ,end-regex beg end type count nil))
+            (evil-define-text-object ,outer-name (count &optional beg end type)
+              (evil-select-paren ,start-regex ,end-regex beg end type count t))
+            (define-key evil-inner-text-objects-map ,key (quote ,inner-name))
+            (define-key evil-outer-text-objects-map ,key (quote ,outer-name)))))
+
+     (defmacro define-and-bind-quote-text-object (name key quote-char)
+       (let ((inner-name (make-symbol (concat "evil-inner-quote-" name)))
+             (outer-name (make-symbol (concat "evil-outer-quote-" name))))
+         `(progn
+            (evil-define-text-object ,inner-name (count &optional beg end type)
+              (evil-select-quote ,quote-char beg end type count nil))
+            (evil-define-text-object ,outer-name (count &optional beg end type)
+              (evil-select-quote ,quote-char beg end type count t))
+            (define-key evil-inner-text-objects-map ,key (quote ,inner-name))
+            (define-key evil-outer-text-objects-map ,key (quote ,outer-name)))))
+
+     (define-and-bind-quote-text-object "dollar" "$" ?$)
+     (define-and-bind-text-object "slash" "/" "/" "/")
+     (define-and-bind-text-object "pipe" "|" "|" "|")
+     (define-and-bind-text-object "star" "*" "*" "*")
+     (define-and-bind-text-object "frenchquote" "«" "«" "»")
+     (define-and-bind-text-object "tikz" "z" "\\(\\\\bpi\\|\\\\tikzpicture\\).*$" "\\(\\\\epi\\|\\\\endtikzpicture\\)")
+     (define-and-bind-text-object "environment" "e" "\\\\begin{[^{}]+}$" "\\\\end{[^{}]+}")
    #+end_src
 
 * archive
@@ -1416,5 +1912,3 @@
        (add-hook 'mhtml-mode-hook 'emmet-mode)
        (add-hook 'css-mode-hook 'emmet-mode))
    #+END_SRC
-
-   

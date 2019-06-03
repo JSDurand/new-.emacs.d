@@ -83,12 +83,12 @@
   (set-face-attribute 'org-verbatim nil :background "gray1")
   (set-face-attribute 'italic nil :foreground "light blue"))
 
-(use-package org-habit
-  :config
-  (setq org-habit-show-habits-only-for-today t)
-  (setq org-habit-show-all-today t)
-  (setq org-habit-graph-column 55)
-  (setq org-habit-today-glyph ?|))
+;; (use-package org-habit
+;;   :config
+;;   (setq org-habit-show-habits-only-for-today t)
+;;   (setq org-habit-show-all-today t)
+;;   (setq org-habit-graph-column 55)
+;;   (setq org-habit-today-glyph ?|))
 
 (use-package org
   :ensure org-plus-contrib)
@@ -101,8 +101,7 @@
   "Execute `general-hydra/body' after `org-agenda-exit'.
 Don't bind it to a key in `general-hydra/heads'"
   (interactive)
-  (org-agenda-exit)
-  (general-hydra/body))
+  (org-agenda-exit))
 
 ;; the original org-drill contains invalid calls to org-map-entries
 ;;;###autoload
@@ -374,6 +373,8 @@ the current topic."
        (string-match "https?://math.stackexchange.com" link)
        (string-match "https?://mathoverflow.net/" link))
       ":stack:")
+     ((string-match "https?://www.uukanshu.com" link)
+      ":roman:")
      (t
       ":web_link:"))))
 
@@ -636,19 +637,14 @@ the current topic."
                              :log t)))
                    (org-agenda-span 'day)
                    (org-agenda-sorting-strategy '(priority-down time-up))))
-          (todo "TO-THINK"
-                ((org-super-agenda-groups
-                  '((:name "À Voir" :tag "a_voir")
-                    (:name "Mathématiques" :tag "math")
-                    (:name "TeX" :tag "tex")
-                    (:name "Question" :tag "question")))
-                 (org-agenda-overriding-header "TO-THINK")))
           (todo "PENDING"
                 ((org-super-agenda-groups
                   '((:name "Des Romans" :discard (:tag "roman"))
                     (:name "YouTube" :tag "youtube")
                     (:name "Stack" :tag "stack")
-                    (:name "Web Link" :tag "web_link")
+                    (:name "Spécial" :tag "special")
+                    (:name "Web Link" :and (:tag "web_link" :not (:tag "personnes")))
+                    (:name "Personnes" :tag "personnes")
                     (:name "PENDING" :anything t)))
                  (org-agenda-overriding-header "PENDING")))
           (tags "plan"
@@ -658,7 +654,14 @@ the current topic."
                     (:name "Essaiyer" :todo "ESSAIYER")
                     (:name "Progresser" :todo "PROGRESSER")
                     (:name "Complété" :todo "COMPLÉTÉ")))
-                 (org-agenda-overriding-header "PLAN"))))
+                 (org-agenda-overriding-header "PLAN")))
+          (todo "TO-THINK"
+                ((org-super-agenda-groups
+                  '((:name "À Voir" :tag "a_voir")
+                    (:name "Mathématiques" :tag "math")
+                    (:name "TeX" :tag "tex")
+                    (:name "Question" :tag "question")))
+                 (org-agenda-overriding-header "TO-THINK"))))
          ((org-agenda-block-separator nil)))
         ("a" "Custom"
 	 ((agenda ""
@@ -953,7 +956,7 @@ If this information is not given, the function uses the tree at point."
 (defun org-agenda-show-blocks-number ()
   "Show the current position"
   (let ((num (length (-filter (lambda (x) (>= (point) x)) org-agenda-block-seps))))
-    (and num (format "%d/%d" num (if org-agenda-total-blocks
+    (and num (format " %d/%d" num (if org-agenda-total-blocks
                                      org-agenda-total-blocks
                                    0)))))
 
@@ -1200,9 +1203,9 @@ If this information is not given, the function uses the tree at point."
                                            (substring-no-properties
                                             (car x)))
                                          current)
-                                 :update-fn 'durand-cursor-follow-link
+                                 ;; :update-fn 'durand-cursor-follow-link
                                  :unwind (lambda ()
-                                           (swiper--cleanup)
+                                           ;; (swiper--cleanup)
                                            (setf durand-before-obj nil)))))))
          (lien-courant (when (not (string= num_link ""))
                          (assoc num_link (mapcar (lambda (x)
@@ -1310,16 +1313,94 @@ and whose `caddr' is a list of strings, the content of the note."
 		       "\\).*$"))
 
 ;;;###autoload
+(defun durand-org-get-logs ()
+  "Get the logging information of a headline."
+  (interactive)
+  (save-excursion
+    (save-restriction
+      (save-match-data
+        (widen)
+        (unless (org-at-heading-p) (outline-back-to-heading))
+        (let ((limit (save-excursion (outline-next-heading) (point))))
+          (cond
+           ((re-search-forward ":LOGBOOK:" limit t)
+            (forward-line 1)
+            (let ((ending (save-excursion (re-search-forward ":END:" limit t) (point)))
+                  res-list)
+              (while (re-search-forward
+                      (mapconcat #'identity `("state" ,org-ts-regexp3) ".*")
+                      ending
+                      t)
+                (push (list
+                       (string-to-number (match-string 2))
+                       (string-to-number (match-string 3))
+                       (string-to-number (match-string 4))
+                       (string-to-number (match-string 7))
+                       (string-to-number (match-string 8)))
+                      res-list))
+              (mapcar (lambda (x)
+                        (encode-time 0 (nth 4 x) (nth 3 x) (caddr x) (cadr x) (car x)))
+                      res-list)))))))))
+
+;;;###autoload
 (defun durand-org-view-notes ()
   "View the notes entries in a separate buffer"
   (interactive)
   (let* ((notes (durand-org-get-notes))
+         (logs (durand-org-get-logs))
 	 (len (length notes)))
     (with-current-buffer-window
      "*durand-org-view-notes*"
      nil nil
      (goto-char (point-min))
      (insert "#+STARTUP: showall\n")
+     ;; insert log graph if any
+     (let* ((unsorted-days-list (mapcar #'time-to-days logs))
+            (sorted-days-list (sort unsorted-days-list #'<))
+            (first-day (car sorted-days-list))
+            (first-time (decode-time (car (sort logs #'time-less-p))))
+            (total-days-between (- (time-to-days (current-time)) first-day)))
+       (unless (null sorted-days-list)
+         (insert "LOGS: "))
+       (mapc (lambda (x)
+               ;; x is the x-th day since the first log
+               (cond
+                ((member (+ x first-day) sorted-days-list)
+                 (let* ((temps (car (-filter (lambda (y)
+                                               (= (time-to-days y)
+                                                  (+ x first-day)))
+                                             logs)))
+                        (temps-list (decode-time temps))
+                        (an (nth 5 temps-list))
+                        (mois (nth 4 temps-list))
+                        (jour (nth 3 temps-list))
+                        (heure (nth 2 temps-list))
+                        (minute (nth 1 temps-list)))
+                   (insert (propertize "*" 'font-lock-face '(:foreground "white" :background "green")
+                                       'help-echo (concat
+                                                   (mapconcat #'number-to-string
+                                                              (list an mois jour)
+                                                              "-")
+                                                   " "
+                                                   (number-to-string heure)
+                                                   ":"
+                                                   (number-to-string minute))))))
+                (t
+                 (let* ((temps (encode-time 0 0 0
+                                            (+ x (nth 3 first-time))
+                                            (nth 4 first-time)
+                                            (nth 5 first-time)))
+                        (temps-list (decode-time temps))
+                        (an (nth 5 temps-list))
+                        (mois (nth 4 temps-list))
+                        (jour (nth 3 temps-list)))
+                   (insert (propertize " " 'font-lock-face '(:background "red")
+                                       'help-echo (mapconcat #'number-to-string
+                                                             (list an mois jour)
+                                                             "-")))))))
+             (number-sequence 0 total-days-between)))
+     (insert "\n")
+     ;; insert notes
      (let ((times (mapcar #'car notes))
 	   (metas (mapcar #'cadr notes))
 	   (contents (mapcar #'caddr notes)))
@@ -1337,7 +1418,7 @@ and whose `caddr' is a list of strings, the content of the note."
      (goto-char (point-min))
      (org-mode))
     (message "%s note%s found" (if (= 0 len) "No" (number-to-string len))
-	     (if (<= len 1) "" "s"))))
+	     (cond ((= len 0) "s") ((<= len 1) "") (t "s")))))
 
 ;;;###autoload
 (defun durand-org-agenda-goto-view-note ()
@@ -1444,23 +1525,36 @@ and whose `caddr' is a list of strings, the content of the note."
   "Choose bookmarks to open."
   (interactive)
   (let* ((route_du_fichier "~/org/notes.org")
+         (nom_du_tampon "notes.org")
+         (déjà_ouvert (get-buffer nom_du_tampon))
          (cands (org-ql--query route_du_fichier '(tags "bookmarks")
                   :action (lambda ()
                             (org-offer-links-in-entry (buffer-name) (point)))))
-         (choice (ivy-read "Choose bookmarks: " (mapcar (lambda (x)
-                                                          (string-match org-any-link-re (format "%s" (car x)))
-                                                          (substring-no-properties
-                                                           (match-string 3 (format "%s" (car x)))
-                                                           1 -1))
-                                                        cands))))
-    (org-open-link-from-string
-     (substring-no-properties
-      (car (assoc* choice cands
-                   :test #'string-match))))))
+         (choice (durand-choose-list (mapcar (lambda (x)
+                                               (string-match org-any-link-re (format "%s" (car x)))
+                                               (list
+                                                (substring-no-properties
+                                                 (match-string 3 (format "%s" (car x)))
+                                                 1 -1)
+                                                "rien"))
+                                             cands)
+                                     nil "Choose bookmarks: ")))
+    (unwind-protect
+        (mapc (lambda (x)
+                (org-open-link-from-string
+                 (substring-no-properties
+                  (car (assoc* x cands
+                               :test #'string-match)))))
+              choice)
+      (when (and (not déjà_ouvert) (get-buffer nom_du_tampon))
+        (kill-buffer nom_du_tampon))
+      (delete-other-windows))))
 
 ;;;###autoload
-(defun durand-org-link-info ()
-  "Return a cons of the headline text and the links contained therein."
+(defun durand-org-link-info (&optional arg)
+  "Return a cons of the headline text and the links contained therein.
+If ARG is t, then return (text . point).
+If ARG is `youtube', then return (text list point)"
   (let* ((texte (nth 4 (org-heading-components)))
          (limite (save-excursion
                    (outline-next-heading)
@@ -1469,29 +1563,47 @@ and whose `caddr' is a list of strings, the content of the note."
                   (while (re-search-forward org-any-link-re limite t)
                     (push (match-string-no-properties 2) res))
                   res)))
-    (cons texte liste)))
+    (cond
+     ((null arg)
+      (cons texte liste))
+     ((eq arg 'youtube)
+      (list texte liste (point)))
+     (t
+      (cons texte (point))))))
 
 ;;;###autoload
-(defun durand-choose-list (cands &optional all texte)
+(defun durand-choose-list (cands &optional all texte non-quick)
   "Choose from an alist. Multiple selection is supported.
-If ALL is non-nil, add a choice to select all of them."
-  (if (= (length cands) 1)
+If ALL is non-nil, add a choice to select all of them.
+If NON-QUICK is non-nil, then offer the selection even when there is only one candidate."
+  (if (and (= (length cands) 1) (null non-quick))
       (list (caar cands))
     (let ((cands (if all (append '("all") cands) cands))
           (question (or texte "Chois un: "))
-          res det)
+          res det exc)
       (setf ivy--index 0)
       (while (null det)
-        (setf det t)
+        (setf det t
+              exc nil)
         (let ((ele (ivy-read question cands
                              :require-match t
                              :action '(1
                                        ("o" identity "default")
                                        ("m" (lambda (x)
                                               (setf det nil))
-                                        "continue"))
+                                        "continue")
+                                       ("e" (lambda (x)
+                                              (setf cands (remove-if
+                                                           (lambda (y)
+                                                             (string= (if (listp y) (car y) y)
+                                                                      (if (stringp x) x (car x))))
+                                                           cands)
+                                                    det nil
+                                                    ivy--index 0
+                                                    exc t))
+                                        "exclude"))
                              :preselect ivy--index)))
-          (push ele res)))
+          (unless exc (push ele res))))
       (when (member "all" res) (setf res (mapcar #'car (cdr cands))))
       (setf res (remove-duplicates res :test #'equal))
       res)))
@@ -1518,7 +1630,7 @@ If ALL is non-nil, add a choice to select all of them."
                                (setf temp (append temp
                                                   (durand-choose-list
                                                    (mapcar (lambda (x) (cons x '("1"))) (assoc-default x cands))
-                                                   t))))
+                                                   t "Chois un lien: "))))
                              sel)
                        temp))))
               (mapc #'browse-url liste-de-choix))
@@ -1553,6 +1665,73 @@ If ALL is non-nil, add a choice to select all of them."
           (kill-buffer nom_du_tampon))))))
 
 ;;;###autoload
+(defun org-open-youtube (&optional arg)
+  "Choose youtube link to open.
+With (, just kill the entry.
+With ((, don't kill the entry."
+  (interactive "P")
+  (cond
+   ((or (null arg) (equal arg '(16)))
+    (let* ((route_du_fichier "~/org/notes.org")
+           (nom_du_tampon "notes.org")
+           (nom_du_tampon_actuel (buffer-name))
+           (déjà_ouvert (get-buffer nom_du_tampon))
+           (inhibit-message t) cands)
+      (find-file route_du_fichier)
+      (switch-to-buffer nom_du_tampon_actuel)
+      (with-current-buffer nom_du_tampon
+        (setf cands (org-map-entries
+                     (lambda () (durand-org-link-info 'youtube))
+                     "youtube")))
+      (unwind-protect
+          (let* ((sel (durand-choose-list cands t "Chois une vidéo: " t)))
+            (setf sel (sort sel (lambda (x y)
+                                  (< (cadr (assoc-default x cands))
+                                     (cadr (assoc-default y cands))))))
+            (mapc (lambda (x)
+                    (with-current-buffer nom_du_tampon
+                      (goto-char (cadr (assoc-default x cands)))
+                      (when (null arg) (org-cut-subtree)))
+                    (mapc #'browse-url (car (assoc-default x cands))))
+                  (reverse sel)))
+        (when (and (not déjà_ouvert) (get-buffer nom_du_tampon))
+          (with-current-buffer nom_du_tampon
+            (save-buffer 0))
+          (kill-buffer nom_du_tampon)))))
+   (t
+    (org-kill-youtube))))
+
+;;;###autoload
+(defun org-kill-youtube ()
+  "Kill an org entry corresponding to a youtube link"
+  (interactive)
+  (let* ((route_du_fichier "~/org/notes.org")
+         (nom_du_tampon "notes.org")
+         (nom_du_tampon_actuel (buffer-name))
+         (déjà_ouvert (get-buffer nom_du_tampon))
+         (inhibit-message t) cands)
+    (find-file route_du_fichier)
+    (switch-to-buffer nom_du_tampon_actuel)
+    (with-current-buffer nom_du_tampon
+      (setf cands (org-map-entries (lambda ()
+                                     (durand-org-link-info t))
+                                   "youtube")))
+    (unwind-protect
+        (let ((liste-de-choix
+               (mapcar (lambda (x)
+                         (assoc-default x cands))
+                       (durand-choose-list cands t "Chois une vidéo: "))))
+          (mapc (lambda (x)
+                  (with-current-buffer nom_du_tampon
+                    (goto-char x)
+                    (org-cut-subtree)))
+                liste-de-choix))
+      (when (and (not déjà_ouvert) (get-buffer nom_du_tampon))
+        (with-current-buffer nom_du_tampon
+          (save-buffer 0))
+        (kill-buffer nom_du_tampon)))))
+
+;;;###autoload
 (defun durand-org-filter-dates (str)
   "Filter out the timestamp in string"
   (if (string-match org-ts-regexp3 str)
@@ -1560,39 +1739,54 @@ If ALL is non-nil, add a choice to select all of them."
     str))
 
 ;;;###autoload
+(defun durand-org-open-link (str)
+  "Since `org-open-link-from-string' does not handle links with brackets correctly, this function
+attempts to handle them."
+  (org-open-link-from-string
+   (org-make-link-string
+    (org-link-unescape str)
+    "fake link")))
+
+;;;###autoload
 (defun org-open-articles (&optional arg)
   "Open all articles, that is, entries in \"notes.org\" with \"a_voir\" tag.
-If ARG is non-nil, then execute `durand-update-article'."
+If ARG is (4), then execute `durand-update-article'.
+If ARG is (16), then open entries in \"notes.org\" with \"math\" tag."
   (interactive "P")
-  (if (null arg)
-      (let* ((route_du_fichier "~/org/notes.org")
-             (nom_du_tampon "notes.org")
-             (nom_du_tampon_actuel (buffer-name))
-             (déjà_ouvert (get-buffer nom_du_tampon))
-             (inhibit-message t) cands)
-        (find-file route_du_fichier)
-        (switch-to-buffer nom_du_tampon_actuel)
-        (with-current-buffer nom_du_tampon
-          (setf cands (org-map-entries #'durand-org-link-info "a_voir")))
-        (setf cands
-              (mapcar (lambda (x) (cons (durand-org-filter-dates (car x)) (cdr x))) cands))
-        (setf cands (reverse cands))
-        (unwind-protect
-            (let ((liste-de-choix
-                   (let (temp)
-                     (let* ((sel (durand-choose-list cands nil "Chois un article: ")))
-                       (mapc (lambda (x)
-                               (setf temp (append temp
-                                                  (durand-choose-list
-                                                   (mapcar (lambda (x) (cons x '("1"))) (assoc-default x cands))
-                                                   t))))
-                             sel)
-                       temp))))
-              (mapc #'org-open-link-from-string liste-de-choix))
-          (when (and (not déjà_ouvert) (get-buffer nom_du_tampon))
-            (kill-buffer nom_du_tampon))
-          (delete-other-windows)))
-    (durand-update-article)))
+  (cond
+   ((or (null arg) (equal arg '(16)))
+    (let* ((route_du_fichier "~/org/notes.org")
+           (tag (if (null arg) "a_voir" "math-a_voir"))
+           (nom_du_tampon "notes.org")
+           (nom_du_tampon_actuel (buffer-name))
+           (déjà_ouvert (get-buffer nom_du_tampon))
+           (inhibit-message t) cands)
+      (find-file route_du_fichier)
+      (switch-to-buffer nom_du_tampon_actuel)
+      (with-current-buffer nom_du_tampon
+        (setf cands (org-map-entries #'durand-org-link-info tag)))
+      (setf cands
+            (mapcar (lambda (x) (cons (durand-org-filter-dates (car x)) (cdr x))) cands))
+      (setf cands (reverse cands))
+      (unwind-protect
+          (let ((liste-de-choix
+                 (let (temp)
+                   (let* ((sel (durand-choose-list cands nil "Chois un article: ")))
+                     (mapc (lambda (x)
+                             (setf temp (append temp
+                                                (durand-choose-list
+                                                 (mapcar (lambda (x) (cons x '("1"))) (assoc-default x cands))
+                                                 t "Chois un lien: "))))
+                           sel)
+                     temp))))
+            (mapc #'durand-org-open-link liste-de-choix))
+        (when (and (not déjà_ouvert) (get-buffer nom_du_tampon))
+          (kill-buffer nom_du_tampon))
+        (delete-other-windows))))
+   ('(4)
+    (durand-update-article))
+   (t
+    (message "This ARG is not supported: %s" arg))))
 
 ;;;###autoload
 (defun durand-update-article ()
@@ -1720,6 +1914,8 @@ the link comes from the most recently stored link, so choose carefully the targe
 ;;;###autoload
 (defun org-advance (x)
   (interactive "P")
+  (unless (derived-mode-p 'org-mode)
+    (user-error "Not in org mode buffer"))
   (when (buffer-narrowed-p)
     (beginning-of-buffer)
     (widen)
@@ -1731,6 +1927,8 @@ the link comes from the most recently stored link, so choose carefully the targe
 ;;;###autoload
 (defun org-retreat (x)
   (interactive "P")
+  (unless (derived-mode-p 'org-mode)
+    (user-error "Not in org mode buffer"))
   (when (buffer-narrowed-p)
     (beginning-of-buffer)
     (widen)

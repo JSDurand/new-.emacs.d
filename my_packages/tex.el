@@ -130,11 +130,9 @@ If ARG is non-nil, delete the buffer BN"
     (cond
      ((get-buffer corresponding-pdf)
       (switch-to-buffer corresponding-pdf)
-      (pdf-view-last-page)
       (tex-pdf-prepare))
      ((file-exists-p corresponding-pdf)
       (find-file corresponding-pdf)
-      (pdf-view-last-page)
       (tex-pdf-prepare))
      (t
       (message "Cannot find pdf named %s" corresponding-pdf)))))
@@ -273,9 +271,8 @@ If ARG is non-nil, delete the buffer BN"
   (define-key plain-tex-mode-map [?\C-c ?\C-\S-o] '(lambda () (interactive) (make-blank-space 4)))
   (define-key plain-tex-mode-map [?\M-'] 'abbrev-prefix-mark)
   (define-key plain-tex-mode-map [?ù] abbrev-prefix-map)
-  ;; (define-key plain-tex-mode-map [tab] 'completion-at-point)
-  (define-key plain-tex-mode-map [tab] 'company-complete)
-  
+  (define-key plain-tex-mode-map [tab] 'company-complete-common-or-cycle)
+
   (add-hook 'tex-mode-hook 'olivetti-mode)
 
   ;; (remove-hook 'tex-mode-hook
@@ -403,7 +400,7 @@ If ARG is non-nil, delete the buffer BN"
 (define-key abbrev-prefix-map "S" (lambda () (interactive) (insert "\\Sigma")))
 (define-key abbrev-prefix-map "P" (lambda () (interactive) (insert "\\Pi")))
 (define-key abbrev-prefix-map "X" (lambda () (interactive) (insert "\\Xi")))
-(define-key abbrev-prefix-map "L" (lambda () (interactive) (insert "\\Lambda")))
+(define-key abbrev-prefix-map "L" (lambda () (interactive) (insert "\\lambda")))
 (define-key abbrev-prefix-map "J" (lambda () (interactive) (insert "\\Theta")))
 (define-key abbrev-prefix-map "G" (lambda () (interactive) (insert "\\Gamma")))
 (define-key abbrev-prefix-map "D" (lambda () (interactive) (insert "\\Delta")))
@@ -433,6 +430,7 @@ If ARG is non-nil, delete the buffer BN"
 (define-key abbrev-prefix-map "+" (lambda () (interactive) (insert "\\sum")))
 (define-key abbrev-prefix-map "0" (lambda () (interactive) (insert "\\circ")))
 (define-key abbrev-prefix-map "c" 'read-tex-complete)
+(define-key abbrev-prefix-map (kbd "<return>") (lambda () (interactive) (insert "\n\\item{}\n")))
 
 ;; (defhydra abbrev-prefix-hydra (:color red)
 ;;   "insert"
@@ -831,23 +829,106 @@ assuming all defs come at the beginning of line"
 ;; 							(concat (file-name-sans-extension (buffer-name)) ".tex")
 ;; 						      working-name)))))))))))
 
-(defun make-blank-space (&optional down-p)
-  "To make enough space to put something in. Default to up, with DOWN-P down"
+(defun make-blank-space (arg)
+  "To make enough space to put something in. Default to up, with arg down"
   (interactive "P")
-  (pcase down-p
-    ((pred null)
-     (beginning-of-line)
-     (open-line 3)
-     (forward-line)
-     (indent-according-to-mode))
-    (_
-     (end-of-line)
-     (open-line 3)
-     (forward-line 2)
-     (indent-according-to-mode))))
+  (if (null arg)
+      (progn
+        (beginning-of-line)
+        (open-line 3)
+        (forward-line)
+        (indent-according-to-mode))
+    (progn
+      (end-of-line)
+      (open-line 3)
+      (forward-line 2)
+      (indent-according-to-mode))))
 
 ;; (define-derived-mode tex-org plain-tex-mode "TEX-ORG"
 ;;   "For writing tex documents in an org file.")
+
+;; expand-region
+
+;;;###autoload
+(defun er/add-plain-tex-mode-expansions ()
+  "mark math in tex"
+  (interactive)
+  (make-variable-buffer-local 'er/try-expand-list)
+  (setf (nthcdr 9 er/try-expand-list)
+        (append '(durand-mark-inside-math durand-mark-outside-math)
+                (nthcdr 9 er/try-expand-list))))
+
+;;;###autoload
+;; (defun durand-mark-outside-math ()
+;;   "mark inside $$ in tex mode"
+;;   (interactive)
+;;   (let ((pt (point)))
+;;     (condition-case nil
+;;         (when (ignore-errors
+;;                 (or (equal (get-text-property (point) 'face) 'tex-math)
+;;                     (memq 'tex-math (get-text-property (point) 'face))
+;;                     (and (equal (get-text-property (point) 'face) 'show-paren-match)
+;;                          (or (equal (get-text-property (1+ (point)) 'face) 'tex-math)
+;;                              (memq 'tex-math (get-text-property (1+ (point)) 'face))
+;;                              (equal (get-text-property (1- (point)) 'face) 'tex-math)
+;;                              (memq 'tex-math (get-text-property (1- (point)) 'face))))))
+;;           (re-search-forward "$+" nil t)
+;;           (save-excursion
+;;             (forward-sexp -1)
+;;             (push-mark nil nil t))
+;;           (exchange-point-and-mark))
+;;       (scan-error
+;;        (goto-char pt)
+;;        (user-error "Not inside $$")))))
+
+;;;###autoload
+(defun durand-mark-inside-math ()
+  "Temporarily alter the syntax table"
+  (interactive)
+  (with-syntax-table (copy-syntax-table (syntax-table))
+    (modify-syntax-entry ?$ "\"$")
+    (er/mark-inside-quotes)))
+
+;;;###autoload
+(defun durand-mark-outside-math ()
+  "Temporarily alter the syntax table"
+  (interactive)
+  (with-syntax-table (copy-syntax-table (syntax-table))
+    (modify-syntax-entry ?$ "\"$")
+    (er/mark-outside-quotes)))
+
+(ignore-errors (er/enable-mode-expansions 'plain-tex-mode 'er/add-plain-tex-mode-expansions))
+
+(defvar durand-latin-mode-map (make-sparse-keymap)
+  "Keymap for the minor mode `durand-latin-mode'")
+
+(define-minor-mode durand-latin-mode
+  "Minor mode for quickly entering latin special letters."
+  nil
+  "Latin"
+  durand-latin-mode-map)
+
+(define-prefix-command 'enter-latin-special-symbol)
+
+(define-key enter-latin-special-symbol [?a] (lambda () (interactive) (insert "ā")))
+(define-key enter-latin-special-symbol [?e] (lambda () (interactive) (insert "ē")))
+(define-key enter-latin-special-symbol [?i] (lambda () (interactive) (insert "ī")))
+(define-key enter-latin-special-symbol [?o] (lambda () (interactive) (insert "ō")))
+(define-key enter-latin-special-symbol [?u] (lambda () (interactive) (insert "ū")))
+
+(define-key enter-latin-special-symbol [?A] (lambda () (interactive) (insert "Ā")))
+(define-key enter-latin-special-symbol [?E] (lambda () (interactive) (insert "Ē")))
+(define-key enter-latin-special-symbol [?I] (lambda () (interactive) (insert "Ī")))
+(define-key enter-latin-special-symbol [?O] (lambda () (interactive) (insert "Ō")))
+(define-key enter-latin-special-symbol [?U] (lambda () (interactive) (insert "Ū")))
+
+(define-key enter-latin-special-symbol [?\r] (lambda ()
+                                               (interactive)
+                                               (if current-prefix-arg
+                                                   (insert "\n\\item[]\n  ")
+                                                 (insert "\n\\item{}\n  "))))
+
+(define-key durand-latin-mode-map [?ù] 'enter-latin-special-symbol)
 
 ;; (defun make-blank-space (arg)
 ;;   "To make enough space to put something in. Default to up, with arg down"

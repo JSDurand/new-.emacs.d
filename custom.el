@@ -28,7 +28,7 @@
 (add-to-list 'recentf-exclude "bookmark")
 (set-frame-parameter nil 'alpha '(90 . 90))
 (define-key global-map [?\s-q] nil)
-(define-key global-map [?\s-g] (lambda () (interactive) (message "Spécifique")))
+(define-key global-map [?\s-g] (lambda () (interactive) (message "%s" evil-state)))
 (define-key key-translation-map (kbd "ESC") (kbd "C-g"))
 
 (set-face-attribute 'bold nil :foreground "RoyalBlue1")
@@ -259,7 +259,7 @@ If ARG is non-nil, then don't delete other windows"
   (interactive "P")
   (save-selected-window
     (other-window 1)
-    (kill-buffer))
+    (durand-kill-buffer))
   (unless arg
     (delete-other-windows)))
 
@@ -393,18 +393,25 @@ If ARG is non-nil, then don't delete other windows"
 (setq revert-without-query '(".*"))
 (global-set-key [?\C-*] 'clean-up-buffers)
 ;;;###autoload
-(defun clean-up-buffers ()
+(defun clean-up-buffers (&optional arg)
   "
 Clean up some buffers that I oft do not need to keep around;
-If the buffer has a running process, then do not kill it."
-  (interactive)
+If the buffer has a running process, then do not kill it.
+If ARG is non-nil, then turn off mu4e as well if necessary."
+  (interactive "P")
   (cl-loop for buffer being the buffers
 	   do (and (is-not-needed-buffer buffer)
 		   (kill-buffer (buffer-name buffer))))
   (when (and (boundp 'recentf-list)
              (boundp 'durand-recently-closed-files))
     (setf recentf-list nil
-          durand-recently-closed-files nil)))
+          durand-recently-closed-files nil))
+  (cond
+   ((and arg (or (get-process " *mu4e-proc*")
+                 mu4e~update-timer))
+    (mu4e-quit)
+    (setf mu4e~update-timer nil)
+    (message "mu4e is turned off now."))))
 
 ;;;###autoload
 (defun clean-up-reentf-list (&optional regex)
@@ -597,10 +604,10 @@ If the buffer has a running process, then do not kill it."
                        (line-end-position))))
     (durand-modify-pdf-buffer)))
 
-(define-key durand-pdf-mode-map (vector ?n) 'forward-line)
-(define-key durand-pdf-mode-map (vector ?N) 'durand-pdf-next-pdf-line)
-(define-key durand-pdf-mode-map (vector ?p) (lambda () (interactive) (forward-line -1)))
-(define-key durand-pdf-mode-map (vector ?P) 'durand-pdf-previous-pdf-line)
+(define-key durand-pdf-mode-map (vector ?N) 'forward-line)
+(define-key durand-pdf-mode-map (vector ?n) 'durand-pdf-next-pdf-line)
+(define-key durand-pdf-mode-map (vector ?P) (lambda () (interactive) (forward-line -1)))
+(define-key durand-pdf-mode-map (vector ?p) 'durand-pdf-previous-pdf-line)
 
 (define-key durand-pdf-mode-map [return] 'durand-pdf-open-pdf)
 (define-key durand-pdf-mode-map [32] 'durand-pdf-open-or-scroll-up)
@@ -725,6 +732,17 @@ If the buffer has a running process, then do not kill it."
          (snapshot (assoc snapshot-name window-snapshots 'equal)))
     (setf window-snapshots (delq snapshot window-snapshots))
     (message "`%s' window snapshot removed!" snapshot-name)))
+
+;; initial setup after opening emacs
+(defun initial-setup ()
+  "Load two files that have to be loaded manually everytime emacs is opened."
+  (interactive)
+  (mapc 'load-file '("/Users/durand/.emacs.d/mu-el.el"
+                     "/Users/durand/.emacs.d/my_packages/music/music.el"))
+  (message "Files loaded"))
+
+(global-set-key [?\s-q] 'initial-setup)
+
 
 ;; (defun my-org-sidebar-ql (query &optional buffers-files narrow group sort header)
 ;;   "Display a sidebar for `org-ql' QUERY.
