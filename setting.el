@@ -901,14 +901,34 @@ total: %d"
   :defer 15
   :pin manual ;; manually update
   :config
-  ;; initialise
+  (setenv "PKG_CONFIG_PATH" "/usr/local/Cellar/zlib/1.2.8/lib/pkgconfig:/usr/local/lib/pkgconfig:/opt/X11/lib/pkgconfig")
+  (custom-set-variables
+   '(pdf-tools-handle-upgrades nil))    ; Use brew upgrade pdf-tools instead.
+  (setq pdf-info-epdfinfo-program "/usr/local/bin/epdfinfo")
+  ;; ;; initialise
   (pdf-tools-install)
   ;; open pdfs scaled to fit page
   (setq-default pdf-view-display-size 'fit-width)
   ;; use normal isearch
   (define-key pdf-view-mode-map (kbd "s-s") 'isearch-forward)
   (define-key pdf-view-mode-map [?j] (lambda () (interactive) (pdf-view-scroll-up-or-next-page 1)))
-  (define-key pdf-view-mode-map [?k] (lambda () (interactive) (pdf-view-scroll-down-or-previous-page 1))))
+  (define-key pdf-view-mode-map [?k] (lambda () (interactive) (pdf-view-scroll-down-or-previous-page 1)))
+
+  ;; Since the default pdf-links-read-link-action function does not work because of some
+  ;; imagemagick errors, I decide to write my own version.
+  (defun pdf-links-read-link-action (prompt)
+    "Chois un lien dans cette page"
+    (pdf-util-assert-pdf-window)
+    (let* ((links (pdf-cache-pagelinks
+                   (pdf-view-current-page)))
+           (keys (pdf-links-read-link-action--create-keys
+                  (length links)))
+           (key-strings (mapcar (apply-partially 'apply 'string)
+                                keys))
+           (alist (cl-mapcar 'cons key-strings links)))
+      (unless links
+        (user-error "Aucun lien dans cette page!"))
+      (alist-get (ivy-read "Chois un lien:" alist :require-match t) alist nil nil #'string=))))
 
 ;; (use-package key-chord
 ;;   :ensure t
@@ -1339,8 +1359,8 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
 
 (evil-define-key nil durand-evil-spc-ret-map
   [?g] 'revert-buffer
-  [?B] 'org-open-bookmarks
-  [?b] 'describe-bindings
+  [?b] 'org-open-bookmarks
+  [?B] 'describe-bindings
   [?f] 'counsel-describe-function
   [?k] 'describe-key
   [?v] 'counsel-describe-variable
@@ -1505,6 +1525,8 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
   (kbd "SPC <S-backspace>") 'durand-previous-real-buffer
   [?-] (lambda () (interactive) (durand-buffer-scroll 'up))
   [?_] (lambda () (interactive) (durand-buffer-scroll 'down))
+  [?\C--] (lambda () (interactive) (durand-buffer-scroll 'up 1))
+  [?\C-_] (lambda () (interactive) (durand-buffer-scroll 'down 1))
   [?\t] (lambda ()
           "org-cycle or indent-for-tab-command"
           (interactive)
@@ -1519,6 +1541,22 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
   [?\C-x] 'evil-numbers/dec-at-pt
   [?\(] 'universal-argument
   [?à] 'durand-beginning-of-line-or-block)
+
+;; universal argument mode
+(define-key universal-argument-map [?\(] 'universal-argument-more)
+
+(defun universal-argument--description ()
+  (when prefix-arg
+    (concat "("
+            (pcase prefix-arg
+              (`(-) " -")
+              (`(,(and (pred integerp) n))
+               (let ((str ""))
+                 (while (and (> n 4) (= (mod n 4) 0))
+                   (setq str (concat str " ("))
+                   (setq n (/ n 4)))
+                 (if (= n 4) str (format " %s" prefix-arg))))
+              (_ (format " %s" prefix-arg))))))
 
 
 ;; end of visual line
@@ -1573,6 +1611,13 @@ next VCOUNT - 1 lines below the current one."
 (define-and-bind-text-object "frenchquote" "«" "«" "»")
 (define-and-bind-text-object "tikz" "z" "\\(\\\\bpi\\|\\\\tikzpicture\\).*$" "\\(\\\\epi\\|\\\\endtikzpicture\\)")
 (define-and-bind-text-object "environment" "e" "\\\\begin{[^{}]+}$" "\\\\end{[^{}]+}")
+
+(use-package org-noter
+  :ensure t
+  :config
+  (setf org-noter-notes-search-path '("~/org/mes-notes")
+        org-noter-notes-window-location 'vertical-split
+        org-noter-auto-save-last-location t))
 
 ;; (ivy-read "HI: " '("ffa" "ffb" "ffba" "ffaa")
 ;; 	  :unwind (lambda () (setq durand-changed nil)))
@@ -1632,32 +1677,32 @@ next VCOUNT - 1 lines below the current one."
 ;; (add-to-list 'clean-buffer-list-kill-buffer-names "*Calculator*")
 ;; (setq clean-buffer-list-delay-general 0.04)
 
-(use-package js2-mode
-  :ensure t
-  :config
-  (require 'js2-mode)
-  (add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
-  (add-hook 'js2-mode-hook #'js2-imenu-extras-mode)
-  (define-key js2-mode-map (vector ?\M-.) nil)
-  (define-key js2-mode-map (kbd "C-k") #'js2r-kill)
-  (require 'js2-refactor)
-  (add-hook 'js2-mode-hook #'js2-refactor-mode)
-  (js2r-add-keybindings-with-prefix "C-c C-r"))
+;; (use-package js2-mode
+;;   :ensure t
+;;   :config
+;;   (require 'js2-mode)
+;;   (add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
+;;   (add-hook 'js2-mode-hook #'js2-imenu-extras-mode)
+;;   (define-key js2-mode-map (vector ?\M-.) nil)
+;;   (define-key js2-mode-map (kbd "C-k") #'js2r-kill)
+;;   (require 'js2-refactor)
+;;   (add-hook 'js2-mode-hook #'js2-refactor-mode)
+;;   (js2r-add-keybindings-with-prefix "C-c C-r"))
 
-(use-package js2-refactor
-  :ensure t)
+;; (use-package js2-refactor
+;;   :ensure t)
 
-(use-package xref-js2
-  :ensure t
-  :config
-  (require 'js2-mode)
-  (require 'xref-js2)
-  (add-hook 'js2-mode-hook
-            (lambda ()
-              (add-hook 'xref-backend-functions #'xref-js2-xref-backend nil t))))
+;; (use-package xref-js2
+;;   :ensure t
+;;   :config
+;;   (require 'js2-mode)
+;;   (require 'xref-js2)
+;;   (add-hook 'js2-mode-hook
+;;             (lambda ()
+;;               (add-hook 'xref-backend-functions #'xref-js2-xref-backend nil t))))
 
-(use-package emmet-mode
-  :ensure t
-  :config
-  (add-hook 'mhtml-mode-hook 'emmet-mode)
-  (add-hook 'css-mode-hook 'emmet-mode))
+;; (use-package emmet-mode
+;;   :ensure t
+;;   :config
+;;   (add-hook 'mhtml-mode-hook 'emmet-mode)
+;;   (add-hook 'css-mode-hook 'emmet-mode))

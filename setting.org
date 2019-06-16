@@ -414,6 +414,18 @@
   (ignore-errors (define-key company-active-map (kbd "<f1>") #'durand/company-show-doc-buffer))
 #+END_SRC
 
+** intero mode
+
+   This seems to be a quite good package for haskell.
+   But unfortunately I cannot install intero for some reason.
+   
+   #+begin_src emacs-lisp
+     ;; (use-package intero
+     ;;   :ensure t
+     ;;   :config
+     ;;   (add-hook 'haskell-mode-hook 'intero-mode))
+   #+end_src
+
 ** tex commands
    I might consider constructing the A.S.T. of a mathematical equation, and manipulate it later.
    I think this is not much harder than an expression calculator implementation I have done in Haskell before.
@@ -1038,14 +1050,59 @@
        :defer 15
        :pin manual ;; manually update
        :config
-       ;; initialise
+       (setenv "PKG_CONFIG_PATH" "/usr/local/Cellar/zlib/1.2.8/lib/pkgconfig:/usr/local/lib/pkgconfig:/opt/X11/lib/pkgconfig")
+       (custom-set-variables
+        '(pdf-tools-handle-upgrades nil))    ; Use brew upgrade pdf-tools instead.
+       (setq pdf-info-epdfinfo-program "/usr/local/bin/epdfinfo")
+       ;; ;; initialise
        (pdf-tools-install)
        ;; open pdfs scaled to fit page
-       (setq-default pdf-view-display-size 'fit-width)
+       (setq-default pdf-view-display-size 'fit-width
+                     pdf-annot-activate-created-annotations t)
        ;; use normal isearch
        (define-key pdf-view-mode-map (kbd "s-s") 'isearch-forward)
        (define-key pdf-view-mode-map [?j] (lambda () (interactive) (pdf-view-scroll-up-or-next-page 1)))
-       (define-key pdf-view-mode-map [?k] (lambda () (interactive) (pdf-view-scroll-down-or-previous-page 1))))
+       (define-key pdf-view-mode-map [?k] (lambda () (interactive) (pdf-view-scroll-down-or-previous-page 1)))
+       (define-key pdf-annot-minor-mode-map [?\C-c ?\C-a ?h] 'durand-pdf-add-highlighs)
+
+       ;; Since the default pdf-links-read-link-action function does not work because of some
+       ;; imagemagick errors, I decide to write my own version.
+       (defun pdf-links-read-link-action (prompt)
+         "Chois un lien dans cette page"
+         (pdf-util-assert-pdf-window)
+         (let* ((links (pdf-cache-pagelinks
+                        (pdf-view-current-page)))
+                (keys (pdf-links-read-link-action--create-keys
+                       (length links)))
+                (key-strings (mapcar (apply-partially 'apply 'string)
+                                     keys))
+                (alist (cl-mapcar 'cons key-strings links)))
+           (unless links
+             (user-error "Aucun lien dans cette page!"))
+           (alist-get (ivy-read "Chois un lien:" alist :require-match t) alist nil nil #'string=)))
+       ;; Since the default function to add highlight annotations does not work for some
+       ;; readon, I decide to write my own function.
+       (defun durand-pdf-add-highlighs ()
+         "Choose highlighting area by clicking twice instead of using regions"
+         (interactive)
+         (pdf-util-assert-pdf-window)
+         (let* ((choice-one (pdf-util-read-image-position "Chois le TOP LEFT de la première région."))
+                (choice-two (pdf-util-read-image-position "Chois le TOP LEFT de la seconde région."))
+                (coords-one (durand-pdf-convert-coors choice-one))
+                (coords-two (durand-pdf-convert-coors choice-two)))
+           (pdf-annot-add-annotation 'highlight (list (car coords-one)
+                                                      (cdr coords-one)
+                                                      (car coords-two)
+                                                      (cdr coords-two))
+                                     '(("color" . "#ffff00")))))
+
+       (defun durand-pdf-convert-coors (obj)
+         "Convert to relative coordinates"
+         (let* ((len (length obj))
+                (obj-pos (nth (- len 2) obj))
+                (all-pos (nth (1- len) obj)))
+           (cons (/ (car obj-pos) (car all-pos) 1.0)
+                 (/ (cdr obj-pos) (cdr all-pos) 1.0)))))
    #+END_SRC
 
 ** keychord
@@ -1553,8 +1610,8 @@
 
      (evil-define-key nil durand-evil-spc-ret-map
        [?g] 'revert-buffer
-       [?B] 'org-open-bookmarks
-       [?b] 'describe-bindings
+       [?b] 'org-open-bookmarks
+       [?B] 'describe-bindings
        [?f] 'counsel-describe-function
        [?k] 'describe-key
        [?v] 'counsel-describe-variable
@@ -1627,7 +1684,8 @@
        [?q] 'quit-other-window
        [?z] 'capitalize-region-or-word
        [?t] 'avy-goto-char-timer
-       [?:] 'durand-comment-dwim
+       [?:] 'evil-commenter
+       ;; [?:] 'durand-comment-dwim
        [?,] 'evil-goto-first-line
        [?\;] 'evil-goto-line
        [?\s-x] (lambda ()
@@ -1642,9 +1700,9 @@
 
      (evil-define-key nil durand-evil-dollar-map
        [?\d] 'back-to-indentation
-       [?$] (lambda () (interactive) (recenter 0))
-       [?m] (lambda () (interactive) (recenter (/ (window-body-height) 2)))
-       [?-] (lambda () (interactive) (recenter -3))
+       [?t] (lambda () (interactive) (recenter 0))
+       [?z] (lambda () (interactive) (recenter (/ (window-body-height) 2)))
+       [?b] (lambda () (interactive) (recenter -3))
        [?£] 'org-retreat)
 
      ;; motion map
@@ -1654,10 +1712,12 @@
        [32] durand-evil-space-map
        [?\r] durand-evil-ret-map
        [?\d] 'durand-other-buffer
-       [?$] durand-evil-dollar-map
+       ;; [?$] durand-evil-dollar-map
+       [?$] 'evil-end-of-line
        [?i] 'evil-emacs-state
        [40] 'universal-argument
        [?x] 'amx
+       [?\)] 'evil-forward-paragraph
        [?Q] 'quit-window)
 
      ;; normal mode
@@ -1675,7 +1735,8 @@
        [backspace] 'durand-other-buffer
        [32] durand-evil-space-map
        [?\r] durand-evil-ret-map
-       [?\)] 'durand-end-of-line-or-block
+       ;; [?\)] 'durand-end-of-line-or-block
+       [?\)] 'evil-forward-paragraph
        [?s] 'durand-general-save-buffer
        [f10] 'durand-general-save-buffer
        [f9] (lambda () (interactive) (when (functionp durand-tex-action) (funcall durand-tex-action)))
@@ -1687,7 +1748,8 @@
        [?\"] 'evil-use-register
        [?'] 'fill-paragraph
        [?£] 'org-advance
-       [?$] durand-evil-dollar-map
+       ;; [?$] durand-evil-dollar-map
+       [?$] 'evil-end-of-line
        [?i] 'evil-insert-state
        [?j] 'evil-next-visual-line
        [?k] 'evil-previous-visual-line
@@ -1708,8 +1770,9 @@
        [?\s-m] 'durand-toggle-mode-line
        [?ù] 'evil-goto-mark
        [?S] 'cycle-spacing
-       [?z] 'downcase-region-or-word
-       [?Z] 'upcase-region-or-word
+       ;; [?z] 'downcase-region-or-word
+       ;; [?Z] 'upcase-region-or-word
+       [?z] durand-evil-dollar-map
        (kbd "C-SPC") 'set-mark-command
        [?=] 'evil-ex-search-forward
        [?/] 'counsel-grep-or-swiper
@@ -1719,6 +1782,8 @@
        (kbd "SPC <S-backspace>") 'durand-previous-real-buffer
        [?-] (lambda () (interactive) (durand-buffer-scroll 'up))
        [?_] (lambda () (interactive) (durand-buffer-scroll 'down))
+       [?\C--] (lambda () (interactive) (durand-buffer-scroll 'up 1))
+       [?\C-_] (lambda () (interactive) (durand-buffer-scroll 'down 1))
        [?\t] (lambda ()
                "org-cycle or indent-for-tab-command"
                (interactive)
@@ -1732,7 +1797,7 @@
        [?\C-a] 'evil-numbers/inc-at-pt
        [?\C-x] 'evil-numbers/dec-at-pt
        [?\(] 'universal-argument
-       [?à] 'durand-beginning-of-line-or-block)
+       [?\à] 'durand-beginning-of-line-or-block)
 
      ;; universal argument mode
      (define-key universal-argument-map [?\(] 'universal-argument-more)
@@ -1803,6 +1868,20 @@
      (define-and-bind-text-object "frenchquote" "«" "«" "»")
      (define-and-bind-text-object "tikz" "z" "\\(\\\\bpi\\|\\\\tikzpicture\\).*$" "\\(\\\\epi\\|\\\\endtikzpicture\\)")
      (define-and-bind-text-object "environment" "e" "\\\\begin{[^{}]+}$" "\\\\end{[^{}]+}")
+   #+end_src
+** org-noter
+   Je veux tenter de noter quelques choses quand je lis des papiers en pdf-view, donc ce
+   pacquet peut m'être utile au futur.
+   Il s'avère que ce pacquet vraiment marche!
+   
+   #+begin_src emacs-lisp
+     (use-package org-noter
+       :ensure t
+       :config
+       (setf org-noter-notes-search-path '("~/org/mes-notes")
+             org-noter-notes-window-location 'vertical-split
+             org-noter-auto-save-last-location t
+             org-noter-doc-split-fraction '(0.5 . 0.65)))
    #+end_src
 
 * archive
@@ -1877,38 +1956,38 @@
 ** javascript - js2-mode - js2-refactor - xref-js2
 
    #+BEGIN_SRC emacs-lisp
-     (use-package js2-mode
-       :ensure t
-       :config
-       (require 'js2-mode)
-       (add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
-       (add-hook 'js2-mode-hook #'js2-imenu-extras-mode)
-       (define-key js2-mode-map (vector ?\M-.) nil)
-       (define-key js2-mode-map (kbd "C-k") #'js2r-kill)
-       (require 'js2-refactor)
-       (add-hook 'js2-mode-hook #'js2-refactor-mode)
-       (js2r-add-keybindings-with-prefix "C-c C-r"))
+     ;; (use-package js2-mode
+     ;;   :ensure t
+     ;;   :config
+     ;;   (require 'js2-mode)
+     ;;   (add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
+     ;;   (add-hook 'js2-mode-hook #'js2-imenu-extras-mode)
+     ;;   (define-key js2-mode-map (vector ?\M-.) nil)
+     ;;   (define-key js2-mode-map (kbd "C-k") #'js2r-kill)
+     ;;   (require 'js2-refactor)
+     ;;   (add-hook 'js2-mode-hook #'js2-refactor-mode)
+     ;;   (js2r-add-keybindings-with-prefix "C-c C-r"))
 
-     (use-package js2-refactor
-       :ensure t)
+     ;; (use-package js2-refactor
+     ;;   :ensure t)
 
-     (use-package xref-js2
-       :ensure t
-       :config
-       (require 'js2-mode)
-       (require 'xref-js2)
-       (add-hook 'js2-mode-hook
-                 (lambda ()
-                   (add-hook 'xref-backend-functions #'xref-js2-xref-backend nil t))))
+     ;; (use-package xref-js2
+     ;;   :ensure t
+     ;;   :config
+     ;;   (require 'js2-mode)
+     ;;   (require 'xref-js2)
+     ;;   (add-hook 'js2-mode-hook
+     ;;             (lambda ()
+     ;;               (add-hook 'xref-backend-functions #'xref-js2-xref-backend nil t))))
    #+END_SRC
 
 ** emmet mode
    I think it is very awkward to edit html files without emmet mode.
 
    #+BEGIN_SRC emacs-lisp
-     (use-package emmet-mode
-       :ensure t
-       :config
-       (add-hook 'mhtml-mode-hook 'emmet-mode)
-       (add-hook 'css-mode-hook 'emmet-mode))
+     ;; (use-package emmet-mode
+     ;;   :ensure t
+     ;;   :config
+     ;;   (add-hook 'mhtml-mode-hook 'emmet-mode)
+     ;;   (add-hook 'css-mode-hook 'emmet-mode))
    #+END_SRC

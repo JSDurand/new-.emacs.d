@@ -2,7 +2,12 @@
 ;;; This format is meant to be slightly human-readable;
 ;;; nevertheless, you probably don't want to edit it.
 ;;; -*- End Of Bookmark File Format Version Stamp -*-
-(("exercitia.tex"
+(("CV"
+ (filename . "~/Desktop/Centre/Mes notes/Les Notes/Applications/CV.tex")
+ (front-context-string . "\nJ'ai étudié la ")
+ (rear-context-string . "hrule\\vskip.9ex\n")
+ (position . 496))
+("exercitia.tex"
  (filename . "~/Desktop/Centre/TeX/Linguam Latinam Cognoscere/exercitia.tex")
  (front-context-string . "\n\n\n\n\n\\end{docume")
  (rear-context-string . "maximē amābat.\n\n")
@@ -10,8 +15,8 @@
 ("journal"
  (filename . "~/org/diary.org")
  (front-context-string)
- (rear-context-string . "e enlightening!\n")
- (position . 41841))
+ (rear-context-string . " αὖθις δὲ κακή.\n")
+ (position . 45610))
 ("notes.org"
  (filename . "~/org/notes.org")
  (front-context-string)
@@ -71,15 +76,15 @@
  (rear-context-string . "0K 21 aoû 23:06 ")
  (position . 251))
 ("org-refile-last-stored"
- (filename . "~/org/aujourdhui.org")
- (front-context-string . "** TODO [#A] Wri")
- (rear-context-string . "très important.\n")
- (position . 10771))
+ (filename . "~/org/mes-notes/[Kiran_S._Kedlaya]_p-adic_Differential_Equations(z-lib.org).org")
+ (front-context-string . "**** Verify that")
+ (rear-context-string . "94\n      :END:\n\n")
+ (position . 3956))
 ("org-capture-last-stored"
  (filename . "~/org/notes.org")
- (front-context-string . "** PENDING 【ゆう十】")
- (rear-context-string . "n Yui Hatano]]\n\n")
- (position . 17176))
+ (front-context-string . "** PENDING CLASH")
+ (rear-context-string . "00 TROPHIES!]]\n\n")
+ (position . 18903))
 ("university-plan.org"
  (filename . "~/org/university-plan/university-plan.org")
  (front-context-string . "* Purpose\n  I sh")

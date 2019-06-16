@@ -8,6 +8,7 @@
   :config
   ;; Necessary since org-mode 9.2
   (require 'org-tempo)
+  (add-to-list 'org-structure-template-alist '("g" . "src durand-greek"))
   (setq org-todo-keywords '((sequence "TODO(t)" "START(s)" "WORKING(w)" "HARD-WORKING(h)" "ALMOST(a)" "|" "DONE(d)")
 			    (sequence "TO-THINK(c)" "PENDING(p)" "HARD(r)" "IMPOSSIBLE(i)" "|" "SOLVED(v)")))
   (setq org-agenda-files '("~/org/agenda.org" "~/org/notes.org" "~/org/aujourdhui.org"))
@@ -17,13 +18,14 @@
   (global-set-key "\C-cl" 'org-store-link)
   (global-set-key "\C-cc" 'org-capture)
   (global-set-key "\C-ca" 'org-agenda)
-  (setq org-highest-priority ?A)
-  (setq org-lowest-priority ?E)
-  (setq org-default-priority ?B)
-  (setq org-agenda-deadline-faces '((0.5 . org-warning)
-				    (0.4 . org-upcoming-deadline)
-				    (0.0 . default)))
-  (setq org-agenda-block-separator ?\—)
+  (setq org-highest-priority ?A
+        org-lowest-priority ?E
+        org-default-priority ?B
+        org-agenda-deadline-faces '((0.5 . org-warning)
+                                    (0.4 . org-upcoming-deadline)
+                                    (0.0 . default))
+        org-agenda-block-separator ?\—
+        org-pretty-entities t)
   (add-hook 'org-mode-hook '(lambda ()
 			      (define-key org-mode-map [?\ù] 'org-advance)
 			      (define-key org-mode-map [?\ç] 'org-retreat)))
@@ -643,10 +645,14 @@ the current topic."
                     (:name "YouTube" :tag "youtube")
                     (:name "Stack" :tag "stack")
                     (:name "Spécial" :tag "special")
-                    (:name "Web Link" :and (:tag "web_link" :not (:tag "personnes")))
-                    (:name "Personnes" :tag "personnes")
+                    (:name "Web Link" :discard (:tag "personnes"))
+                    ;; (:name "Personnes" :tag "personnes")
                     (:name "PENDING" :anything t)))
                  (org-agenda-overriding-header "PENDING")))
+          (tags "personnes"
+                ((org-super-agenda-groups
+                  '((:name "Personnes" :anything t)))
+                 (org-agenda-overriding-header "Personnes")))
           (tags "plan"
                 ((org-agenda-files '("~/org/plan.org"))
                  (org-super-agenda-groups
@@ -1360,45 +1366,8 @@ and whose `caddr' is a list of strings, the content of the note."
             (first-day (car sorted-days-list))
             (first-time (decode-time (car (sort logs #'time-less-p))))
             (total-days-between (- (time-to-days (current-time)) first-day)))
-       (unless (null sorted-days-list)
-         (insert "LOGS: "))
-       (mapc (lambda (x)
-               ;; x is the x-th day since the first log
-               (cond
-                ((member (+ x first-day) sorted-days-list)
-                 (let* ((temps (car (-filter (lambda (y)
-                                               (= (time-to-days y)
-                                                  (+ x first-day)))
-                                             logs)))
-                        (temps-list (decode-time temps))
-                        (an (nth 5 temps-list))
-                        (mois (nth 4 temps-list))
-                        (jour (nth 3 temps-list))
-                        (heure (nth 2 temps-list))
-                        (minute (nth 1 temps-list)))
-                   (insert (propertize "*" 'font-lock-face '(:foreground "white" :background "green")
-                                       'help-echo (concat
-                                                   (mapconcat #'number-to-string
-                                                              (list an mois jour)
-                                                              "-")
-                                                   " "
-                                                   (number-to-string heure)
-                                                   ":"
-                                                   (number-to-string minute))))))
-                (t
-                 (let* ((temps (encode-time 0 0 0
-                                            (+ x (nth 3 first-time))
-                                            (nth 4 first-time)
-                                            (nth 5 first-time)))
-                        (temps-list (decode-time temps))
-                        (an (nth 5 temps-list))
-                        (mois (nth 4 temps-list))
-                        (jour (nth 3 temps-list)))
-                   (insert (propertize " " 'font-lock-face '(:background "red")
-                                       'help-echo (mapconcat #'number-to-string
-                                                             (list an mois jour)
-                                                             "-")))))))
-             (number-sequence 0 total-days-between)))
+       (insert "LOGS:\n")
+       (durand-draw-days logs))
      (insert "\n")
      ;; insert notes
      (let ((times (mapcar #'car notes))
@@ -1419,6 +1388,305 @@ and whose `caddr' is a list of strings, the content of the note."
      (org-mode))
     (message "%s note%s found" (if (= 0 len) "No" (number-to-string len))
 	     (cond ((= len 0) "s") ((<= len 1) "") (t "s")))))
+
+;;;###autoload
+(defun durand-draw-days (days-list)
+  "Draw the days in a pretty way.
+DAYS-LIST should be a list of time values."
+  (let* ((starting-day (car days-list))
+         (day-string (apply #'concat (durand-prepare-strings starting-day 'day)))
+         (month-string (apply #'concat (durand-prepare-strings starting-day 'month)))
+         (year-string (apply #'concat (durand-prepare-strings starting-day 'year)))
+         (check-string (apply #'concat (durand-prepare-strings starting-day 'check)))
+         (splitted-string-day (split-when-at-end-of-line (concat day-string "|")))
+         (splitted-string-month (split-when-at-end-of-line (concat month-string "|")))
+         (splitted-string-year (split-when-at-end-of-line (concat year-string "|")))
+         (splitted-check-string
+          (progn
+            (mapc
+             (lambda (day-n)
+               (setf (substring check-string
+                                (+ (* 5 (durand-dates-subtract day-n starting-day)) 2)
+                                (+ (* 5 (durand-dates-subtract day-n starting-day)) 4))
+                     "**"))
+             days-list)
+            (split-when-at-end-of-line (concat check-string "|")))))
+    (cl-mapcar (lambda (alpha beta gamma delta)
+                 (insert (propertize (make-string (window-body-width) ?\-)
+                                     'font-lock-face '(:foreground "red" :background "gray10")))
+                 (insert (propertize alpha
+                                     'font-lock-face '(:foreground "red" :background "gray10")))
+                 (insert "\n")
+                 (insert (propertize beta
+                                     'font-lock-face '(:foreground "red" :background "gray10")))
+                 (insert "\n")
+                 (insert (propertize gamma
+                                     'font-lock-face '(:foreground "red" :background "gray10")))
+                 (insert "\n")
+                 ;; (insert (propertize delta
+                 ;;                     'font-lock-face '(:foreground "red" :background "gray10")))
+                 (insert delta)
+                 (insert "\n"))
+               splitted-string-year
+               splitted-string-month
+               splitted-string-day
+               splitted-check-string)))
+
+;;;###autoload
+(defun split-when-at-end-of-line (str)
+  "Draw the string but go down N lines when it exceeds the window.
+Special attention is paid to strings like \vert and \ast.
+Also give colors to \vert and \ast differently."
+  (let* ((str (progn
+                (while (string-match "\\\\vert[{}]*" str)
+                  (setf str (replace-match "|" nil nil str)))
+                (while (string-match "\\\\ast[{}]*" str)
+                  (setf str (replace-match "*" nil nil str)))
+                str))
+         (str-list (string-to-list str))
+         (cur-col (current-column))
+         (wbw (window-body-width))
+         (pointer (pop str-list))
+         temp res)
+    (while str-list
+      (cond
+       ((= (+ cur-col (length temp)) wbw)
+        (push (concat (nreverse temp)) res)
+        (setf cur-col 0
+              temp nil))
+       (t
+        (push pointer temp)
+        (setf pointer (pop str-list)))))
+    (push pointer temp)
+    (push (concat (nreverse temp)) res)
+    (nreverse (mapcar (lambda (x)
+                        (while (string-match "|" x)
+                          (setf x (replace-match
+                                   (propertize "\\\\vert"
+                                               'font-lock-face
+                                               '(:foreground "red"
+                                                             :background "gray10"))
+                                   nil nil x)))
+                        (while (string-match "\\*" x)
+                          (setf x (replace-match
+                                   (propertize "\\\\ast"
+                                               'font-lock-face
+                                               '(:foreground "gold"
+                                                             :background "gray10"))
+                                   nil nil x)))
+                        x)
+                      res))))
+
+;;;###autoload
+(defun durand-prepare-strings (starting-date type)
+  "Prepare header strings starting from date STARTING-DATE."
+  (let* ((sy (nth 5 (decode-time starting-date)))
+         (sm (nth 4 (decode-time starting-date)))
+         (sd (nth 3 (decode-time starting-date)))
+         (ct (current-time))
+         (cy (nth 5 (decode-time ct)))
+         (cm (nth 4 (decode-time ct)))
+         (cd (nth 3 (decode-time ct)))
+         (length-function
+          (lambda (date type)
+            "DATE might indicate the number of years or months, depending upon the TYPE."
+            (let ((dy (nth 5 (decode-time date)))
+                  (dm (nth 4 (decode-time date)))
+                  (dd (nth 3 (decode-time date))))
+              (pcase type
+                ('year
+                 (cond
+                  ((= dy sy)
+                   (1+ (min (durand-dates-subtract
+                             (encode-time 0 0 0 0 1 (1+ sy))
+                             starting-date)
+                            (durand-dates-subtract ct starting-date))))
+                  (t
+                   (1+ (min (durand-dates-subtract
+                             (encode-time 0 0 0 0 1 (1+ dy))
+                             (encode-time 0 0 0 1 1 dy))
+                            (durand-dates-subtract
+                             ct
+                             (encode-time 0 0 0 1 1 dy)))))))
+                ('month
+                 (cond
+                  ((and (= dm sm) (= dy sy))
+                   (1+ (min (durand-dates-subtract
+                             (encode-time 0 0 0 0 (1+ sm) sy)
+                             starting-date)
+                            (durand-dates-subtract ct starting-date))))
+                  (t
+                   (1+ (min (durand-dates-subtract
+                             (encode-time 0 0 0 0 (1+ dm) dy)
+                             (encode-time 0 0 0 1 dm dy))
+                            (durand-dates-subtract
+                             ct
+                             (encode-time 0 0 0 1 dm dy)))))))))))
+         (orig (pcase type
+                 ('year
+                  (mapcar
+                   (lambda (this-year)
+                     (let* ((year-string (number-to-string this-year))
+                            ;; e.g. 2019
+                            (total-length (length year-string))
+                            ;; 4
+                            (half-length (/ total-length 2))
+                            (separator "|")
+                            (post-padding (make-string (- (/ (1- (* (funcall
+                                                                     length-function
+                                                                     (encode-time 0 0 0 1 1 this-year)
+                                                                     'year)
+                                                                    5))
+                                                             2)
+                                                          half-length)
+                                                       32))
+                            (pre-padding (make-string (- (ceiling
+                                                          (1- (* (funcall
+                                                                   length-function
+                                                                   (encode-time 0 0 0 1 1 this-year)
+                                                                   'year)
+                                                                  5))
+                                                           2)
+                                                         half-length)
+                                                       32)))
+                       (concat separator pre-padding year-string post-padding)))
+                   (number-sequence sy cy)))
+                 ('month
+                  (mapcar
+                   (lambda (this-month)
+                     (let* ((month-number (nth 4 (decode-time this-month)))
+                            (this-year (nth 5 (decode-time this-month)))
+                            (month-string (pad-string-to
+                                           (number-to-string month-number)
+                                           2))
+                            (separator "|")
+                            (post-padding (make-string (- (/ (1- (* (funcall
+                                                                    length-function
+                                                                    (encode-time 0 0 0 1 month-number this-year)
+                                                                    'month)
+                                                                   5))
+                                                             2)
+                                                          1)
+                                                       32))
+                            (pre-padding (make-string
+                                           (- (ceiling
+                                               (1- (* (funcall
+                                                       length-function
+                                                       (encode-time 0 0 0 1 month-number this-year)
+                                                       'month)
+                                                      5))
+                                               2)
+                                              1)
+                                           32)))
+                       (concat separator pre-padding month-string post-padding)))
+                   (list-months-between starting-date ct)))
+                 ('day
+                  (mapcar
+                   (lambda (this-day)
+                     (let* ((day-number (nth 3 (decode-time this-day)))
+                            ;; (this-month (nth 4 (decode-time this-day)))
+                            ;; (this-year (nth 5 (decode-time this-day)))
+                            (day-string (pad-string-to
+                                           (number-to-string day-number)
+                                           2))
+                            (separator "|")
+                            (pre-padding (make-string 1 32))
+                            (post-padding (make-string 1 32)))
+                       (concat separator pre-padding day-string post-padding)))
+                   (list-days-between starting-date ct)))
+                 ('check
+                  (mapcar
+                   (lambda (this-day)
+                     (let* ((day-number (nth 3 (decode-time this-day)))
+                            (day-string "  ")
+                            (separator "|")
+                            (pre-padding (make-string 1 32))
+                            (post-padding (make-string 1 32)))
+                       (concat separator pre-padding day-string post-padding)))
+                   (list-days-between starting-date ct))))))
+    orig))
+
+;;;###autoload
+(defun list-months-between (date1 date2)
+  (let* ((ey (nth 5 (decode-time date2)))
+         (em (nth 4 (decode-time date2)))
+         (sy (nth 5 (decode-time date1)))
+         (sm (nth 4 (decode-time date1)))
+         (pointer date1)
+         (res (list pointer)))
+    (when (or (< sy ey)
+              (and (= sy ey)
+                   (<= sm em)))
+      ;; lexicographic ordering
+      (while (not (and (= (nth 5 (decode-time pointer))
+                          ey)
+                       (= (nth 4 (decode-time pointer))
+                          em)))
+        (setf pointer (encode-time 0 0 0
+                                   1
+                                   (1+ (nth 4 (decode-time pointer)))
+                                   (nth 5 (decode-time pointer))))
+        (push pointer res))
+      (nreverse res))))
+
+;;;###autoload
+(defun list-days-between (date1 date2)
+  (let* ((ey (nth 5 (decode-time date2)))
+         (em (nth 4 (decode-time date2)))
+         (ed (nth 3 (decode-time date2)))
+         (sy (nth 5 (decode-time date1)))
+         (sm (nth 4 (decode-time date1)))
+         (sd (nth 3 (decode-time date1)))
+         (pointer date1)
+         (res (list pointer)))
+    (when (not (eq (lexicographically-less (list sy sm sd) (list ey em ed)) 'greater))
+      (while (not (eq (lexicographically-less
+                       (list (nth 5 (decode-time pointer))
+                             (nth 4 (decode-time pointer))
+                             (nth 3 (decode-time pointer)))
+                       (list ey em ed))
+                      'same))
+        (setf pointer (encode-time 0 0 0
+                                   (1+ (nth 3 (decode-time pointer)))
+                                   (nth 4 (decode-time pointer))
+                                   (nth 5 (decode-time pointer))))
+        (push pointer res))
+      (nreverse res))))
+
+;;;###autoload
+(defun lexicographically-less (list1 list2)
+  "Compare lexicographically.
+The two lists should have the same lengths."
+  (let ((continue t)
+        (ans 'same))
+    (while (and continue list1 list2)
+      (let ((e1 (pop list1))
+            (e2 (pop list2)))
+        (cond
+         ((< e1 e2)
+          (setf ans 'less
+                continue nil))
+         ((> e1 e2)
+          (setf ans 'greater
+                continue nil)))))
+    ans))
+
+;;;###autoload
+(defun durand-dates-subtract (&rest times)
+  "Subtract times with days as units"
+  (apply #'- (mapcar #'time-to-days times)))
+
+;;;###autoload
+(defun durand-merge-two-lists (a b)
+  "merge two lists whose elements are strings"
+  (let ((la (length a))
+        (lb (length b)))
+    (cond
+     ((< la lb)
+      (setf a (append a (make-list (- lb la) ""))))
+     ((> la lb)
+      (setf b (append b (make-list (- la lb) "")))))
+    (cl-mapcar #'concat a b)))
 
 ;;;###autoload
 (defun durand-org-agenda-goto-view-note ()
@@ -1621,7 +1889,7 @@ If NON-QUICK is non-nil, then offer the selection even when there is only one ca
         (find-file route_du_fichier)
         (switch-to-buffer nom_du_tampon_actuel)
         (with-current-buffer nom_du_tampon
-          (setf cands (org-map-entries #'durand-org-link-info "roman")))
+          (setf cands (org-map-entries #'durand-org-link-info "roman-ARCHIVE")))
         (unwind-protect
             (let ((liste-de-choix
                    (let (temp)
@@ -1652,7 +1920,7 @@ If NON-QUICK is non-nil, then offer the selection even when there is only one ca
     (with-current-buffer nom_du_tampon
       (setf cands (org-map-entries
                    (lambda () (let ((pos (point))) (append (durand-org-link-info) (list pos))))
-                   "roman"))
+                   "roman-ARCHIVE"))
       (unwind-protect
           (let* ((choix (ivy-read "Chois un roman à mettre à jour: " cands
                                   :require-match t))
@@ -1667,8 +1935,8 @@ If NON-QUICK is non-nil, then offer the selection even when there is only one ca
 ;;;###autoload
 (defun org-open-youtube (&optional arg)
   "Choose youtube link to open.
-With (, just kill the entry.
-With ((, don't kill the entry."
+With \\[universal-argument], just kill the entry.
+With \\[universal-argument] \\[universal-argument], don't kill the entry."
   (interactive "P")
   (cond
    ((or (null arg) (equal arg '(16)))
@@ -2123,7 +2391,7 @@ with `C-uC-u' prefix argument, update all accounts."
 
 ;;;###autoload
 (defun org-delete-account ()
-  "Modify the account entries under the current day"
+  "Delete the account entries under the current day"
   (interactive)
   (with-account
    (let* ((account-field-list (org-get-account-fields))
@@ -2423,3 +2691,43 @@ with `C-uC-u' prefix argument, update all accounts."
                                        :require-match t)
                              choix)))
     (org-capture nil clé)))
+
+;; archive
+
+;; (mapc (lambda (x)
+;;         ;; x is the x-th day since the first log
+;;         (cond
+;;          ((member (+ x first-day) sorted-days-list)
+;;           (let* ((temps (car (-filter (lambda (y)
+;;                                         (= (time-to-days y)
+;;                                            (+ x first-day)))
+;;                                       logs)))
+;;                  (temps-list (decode-time temps))
+;;                  (an (nth 5 temps-list))
+;;                  (mois (nth 4 temps-list))
+;;                  (jour (nth 3 temps-list))
+;;                  (heure (nth 2 temps-list))
+;;                  (minute (nth 1 temps-list)))
+;;             (insert (propertize "*" 'font-lock-face '(:foreground "white" :background "green")
+;;                                 'help-echo (concat
+;;                                             (mapconcat #'number-to-string
+;;                                                        (list an mois jour)
+;;                                                        "-")
+;;                                             " "
+;;                                             (number-to-string heure)
+;;                                             ":"
+;;                                             (number-to-string minute))))))
+;;          (t
+;;           (let* ((temps (encode-time 0 0 0
+;;                                      (+ x (nth 3 first-time))
+;;                                      (nth 4 first-time)
+;;                                      (nth 5 first-time)))
+;;                  (temps-list (decode-time temps))
+;;                  (an (nth 5 temps-list))
+;;                  (mois (nth 4 temps-list))
+;;                  (jour (nth 3 temps-list)))
+;;             (insert (propertize " " 'font-lock-face '(:background "red")
+;;                                 'help-echo (mapconcat #'number-to-string
+;;                                                       (list an mois jour)
+;;                                                       "-")))))))
+;;       (number-sequence 0 total-days-between))

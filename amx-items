@@ -1,13 +1,13 @@
 
 ;; ----- amx-history -----
 (
- magit-file-untrack
- org-tags-view
- org-occur
- org-match-sparse-tree
- durand-chercher-pdf
- musique
- all-the-icons-insert
+ durand-transform-code-to-greek
+ durand-clear-overlays
+ durand-search-greek
+ durand-search-last-greek
+ plain-tex-mode
+ org-noter-insert-precise-note
+ org-noter
 )
 
 ;; ----- amx-data -----
@@ -27,8 +27,8 @@
  (haskell-interactive-bring . 1)
  (list-colors-display . 6)
  (plain-TeX-mode . 19)
- (org-mode . 102)
- (emacs-lisp-mode . 38)
+ (org-mode . 108)
+ (emacs-lisp-mode . 42)
  (auto-fill-mode . 32)
  (org-cut-subtree . 2)
  (package-autoremove . 5)
@@ -41,7 +41,7 @@
  (mu4e-compose-edit . 2)
  (save-buffer . 1)
  (recentf-edit-list . 1)
- (package-list-packages . 14)
+ (package-list-packages . 17)
  (emacs-uptime . 8)
  (emacs-init-time . 6)
  (counsel-grep . 3)
@@ -49,12 +49,12 @@
  (tex . 14)
  (eshell . 1)
  (dired-up-directory . 1)
- (package-install . 7)
+ (package-install . 12)
  (chess . 4)
  (swiper-all . 27)
  (counsel-rg . 1)
  (tv/swiper-backward . 1)
- (package-delete . 9)
+ (package-delete . 12)
  (org-toggle-item . 1)
  (org-insert-item . 2)
  (org-account-go-to-day . 13)
@@ -62,7 +62,7 @@
  (describe-face . 25)
  (counsel-describe-face . 8)
  (elfeed-show-refresh . 1)
- (plain-tex-mode . 37)
+ (plain-tex-mode . 38)
  (fundamental-mode . 85)
  (org-toggle-heading . 4)
  (garbage-collect . 10)
@@ -80,9 +80,9 @@
  (toggle-truncate-lines . 1)
  (revert-buffer . 3)
  (recover-this-file . 1)
- (org-occur . 3)
+ (org-occur . 5)
  (occur-next-error . 2)
- (occur-next . 1)
+ (occur-next . 2)
  (org-remove-occur-highlights . 3)
  (org-sidebar-ql . 4)
  (maobaobao-search . 38)
@@ -94,11 +94,11 @@
  (diary-show-all-entries . 1)
  (indent-buffer . 1)
  (mml-preview . 1)
- (olivetti-mode . 67)
+ (olivetti-mode . 69)
  (sx-search . 1)
  (sx-authenticate . 2)
  (customize . 2)
- (align-regexp . 225)
+ (align-regexp . 226)
  (list-processes . 2)
  (org-update-account . 1)
  (org-get-account-entries . 22)
@@ -135,14 +135,14 @@
  (org-drill . 21)
  (org-drill-cram . 1)
  (abbrev-mode . 1)
- (pdf-view-last-page . 1)
+ (pdf-view-last-page . 2)
  (pdf-outline-move-to-current-page . 1)
  (pdf-view-previous-page . 1)
  (durand-update-music . 30)
  (dired . 1)
  (music . 22)
  (durand-music-mode . 4)
- (musique . 79)
+ (musique . 81)
  (durand-chercher-musique . 65)
  (durand-sign . 37)
  (ansi-term . 9)
@@ -215,4 +215,27 @@
  (org-tags-view . 10)
  (org-match-sparse-tree . 10)
  (magit-file-untrack . 1)
+ (pdf-occur . 1)
+ (pdf-view-goto-label . 3)
+ (org-noter . 37)
+ (org-noter-create-skeleton . 1)
+ (org-noter-insert-precise-note . 10)
+ (org-noter-insert-note . 2)
+ (pdf-tools-help . 2)
+ (package-refresh-contents . 2)
+ (package-install-file . 1)
+ (pdf-tools-install . 3)
+ (initial-setup . 1)
+ (pkg-info-defining-library-version . 1)
+ (org-noter-sync-current-note . 2)
+ (durand-transform-code-to-greek . 9)
+ (ivy-occur . 1)
+ (occur . 2)
+ (org-odt-convert . 1)
+ (org-entities-help . 1)
+ (durand-search-greek . 58)
+ (orgtbl-mode . 1)
+ (durand-search-last-greek . 27)
+ (intero-restart . 2)
+ (durand-clear-overlays . 4)
 )
