@@ -2,31 +2,49 @@
 ;;; This format is meant to be slightly human-readable;
 ;;; nevertheless, you probably don't want to edit it.
 ;;; -*- End Of Bookmark File Format Version Stamp -*-
-(("CV"
+(("account.ledger"
+ (filename . "~/ledger/account.ledger")
+ (front-context-string)
+ (rear-context-string . "         -99NTD\n")
+ (position . 315))
+("CV vieil"
+ (filename . "~/Desktop/Centre/À propos de NTU/Applications/Moi/CV.pdf")
+ (position . 1)
+ (page . 1)
+ (slice)
+ (size . fit-width)
+ (origin 0.0 . 0.4439608269858542)
+ (handler . pdf-view-bookmark-jump-handler))
+("ex"
+ (filename . "~/org/grec/ex.org")
+ (front-context-string)
+ (rear-context-string . "it 31\n** exercis")
+ (position . 12724))
+("vocab.org"
+ (filename . "~/org/grec/vocab.org")
+ (front-context-string)
+ (rear-context-string . "c durand-greek\n ")
+ (position . 109696))
+("CV"
  (filename . "~/Desktop/Centre/Mes notes/Les Notes/Applications/CV.tex")
- (front-context-string . "\nJ'ai étudié la ")
- (rear-context-string . "hrule\\vskip.9ex\n")
- (position . 496))
-("exercitia.tex"
- (filename . "~/Desktop/Centre/TeX/Linguam Latinam Cognoscere/exercitia.tex")
- (front-context-string . "\n\n\n\n\n\\end{docume")
- (rear-context-string . "maximē amābat.\n\n")
- (position . 31954))
+ (front-context-string . "\n\n\\bnop\n\\imp Fra")
+ (rear-context-string . "\n\n\\imp Les Prix\n")
+ (position . 1425))
 ("journal"
  (filename . "~/org/diary.org")
- (front-context-string)
- (rear-context-string . " αὖθις δὲ κακή.\n")
- (position . 45610))
+ (front-context-string . "**** Et j'ai cha")
+ (rear-context-string . "-06-16 Dimanche\n")
+ (position . 47054))
 ("notes.org"
  (filename . "~/org/notes.org")
- (front-context-string)
- (rear-context-string . "電影線上看]]\n  \n   \n\n")
- (position . 17762))
+ (front-context-string . "** PENDING 法师亚当最")
+ (rear-context-string . "- 第1章]]\n   咒术法师\n")
+ (position . 18602))
 ("emacs"
  (filename . "~/org/emacs-presentation.org")
- (front-context-string . "#+STARTUP: conte")
- (rear-context-string)
- (position . 1))
+ (front-context-string)
+ (rear-context-string . "rc\n* live coding")
+ (position . 14627))
 ("ideal"
  (filename . "~/.emacs.d/my_packages/ideal/ideal.el")
  (front-context-string . "(setf durand-jum")
@@ -45,11 +63,6 @@
 ("français"
  (filename . "~/org/français/français.org")
  (front-context-string . "#+TITLE: File fo")
- (rear-context-string)
- (position . 1))
-("account.org"
- (filename . "~/org/account/account.org")
- (front-context-string . "#+COLUMNS: %ITEM")
  (rear-context-string)
  (position . 1))
 ("wiki.org"
@@ -76,15 +89,15 @@
  (rear-context-string . "0K 21 aoû 23:06 ")
  (position . 251))
 ("org-refile-last-stored"
- (filename . "~/org/mes-notes/[Kiran_S._Kedlaya]_p-adic_Differential_Equations(z-lib.org).org")
- (front-context-string . "**** Verify that")
- (rear-context-string . "94\n      :END:\n\n")
- (position . 3956))
+ (filename . "~/.emacs.d/setting.org")
+ (front-context-string . "** from jump buf")
+ (rear-context-string . "))\n   #+END_SRC\n")
+ (position . 79238))
 ("org-capture-last-stored"
- (filename . "~/org/notes.org")
- (front-context-string . "** PENDING CLASH")
- (rear-context-string . "00 TROPHIES!]]\n\n")
- (position . 18903))
+ (filename . "~/org/aujourdhui.org")
+ (front-context-string . "* TODO [#A] Prép")
+ (rear-context-string . "is par exemple?\n")
+ (position . 13975))
 ("university-plan.org"
  (filename . "~/org/university-plan/university-plan.org")
  (front-context-string . "* Purpose\n  I sh")

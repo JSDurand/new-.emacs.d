@@ -270,22 +270,13 @@ the current topic."
 (require 'org-protocol)
 
 ;; The original org-protocol-convert handles youtube links wrong
-(defun org-protocol-convert-query-to-plist (query)
-  "Convert QUERY key=value pairs in the URL to a property list."
-  (when query
-    (apply 'append (mapcar (lambda (x)
-			     (let ((c (split-string x "=")))
-			       (list (intern (concat ":" (car c))) (mapconcat #'identity (cdr c) "="))))
-			   (split-string query "&")))))
-
-
 (setq org-capture-templates
       '(;; ("m" "Template for MaoBaoBao Notes" entry
 	;;  (file+headline "~/org/wiki.org" "MaoBaoBao Notes")
 	;;  "* day %U\n  %?")
 	("m" "Account records" entry
 	 (file+datetree "~/org/account/account.org")
-	 "* %^{ITEM|breakfast|brunch|brunverage|lunch|dinner|beverage|snack|fruit}\n  :PROPERTIES:\n  :cost: %^{COST|0}\n  :RECORD_TIME: %U\n  :END:\n  %?\n\n  - "
+	 "* %^{ITEM|breakfast|brunch|brunverage|lunch|dinner|beverage|snack|fruit}\n  :PROPERTIES:\n  :cost: %^{COST|0}\n  :FROM: %^{FROM|Cash}\n  :RECORD_TIME: %U\n  :END:\n  %?\n\n  - "
 	 :jump-to-captured t)
 	("d" "Record Diaries" entry
 	 (file+datetree "~/org/diary.org")
@@ -335,6 +326,15 @@ the current topic."
 	 "* MEMO %^{mot} :drill:\n  :PROPERTIES:\n  :DRILL_CARD_TYPE: français\n  :RECORD_TIME: %U\n  :MEANING: %^{ce qu'il veut dire}\n  :END:\n\n  MEANING: %\\2\n%?"
 	 :jump-to-captured t)))
 
+
+ (defun org-protocol-convert-query-to-plist (query)
+  "Convert QUERY key=value pairs in the URL to a property list."
+  (when query
+    (apply 'append (mapcar (lambda (x)
+			     (let ((c (split-string x "=")))
+			       (list (intern (concat ":" (car c))) (mapconcat #'identity (cdr c) "="))))
+			   (split-string query "&")))))
+
 ;; filter out the title
 ;;;###autoload
 (defun org-filter-title ()
@@ -345,6 +345,8 @@ the current topic."
       (replace-match "" nil nil title))
      ((string-match " - YouTube" title)
       (replace-match "" nil nil title))
+     ((string-match "\\(.*?\\)最新章节列表,\\1无弹窗_UU看书" title)
+      (replace-match "\\1" nil nil title))
      (t
       title))))
 
@@ -358,6 +360,8 @@ the current topic."
                           (replace-match "" nil nil title))
                          ((string-match " - YouTube" title)
                           (replace-match "" nil nil title))
+                         ((string-match "\\(.*?\\)最新章节列表,\\1无弹窗_UU看书" title)
+                          (replace-match "\\1" nil nil title))
                          (t
                           title))))
     (org-make-link-string link filtered)))
@@ -399,7 +403,7 @@ the current topic."
     (with-current-buffer "account.org"
       (org-update-account)
       (ignore-errors (save-buffer 0))
-      (org-columns))))
+      (durand-show-account-report))))
 
 (add-hook 'org-capture-after-finalize-hook 'durand-capture-update-account)
 
@@ -427,7 +431,7 @@ the current topic."
           (outline-previous-heading)
           ;; ensure level 4
           (if (= (car (org-heading-components)) 4)
-              (let (res)
+              (let ((res durand-frequent-shops))
                 ;; widen so that this can work in capture buffer
                 (save-restriction
                   (widen)
@@ -513,6 +517,7 @@ the current topic."
     (user-error "This is not the account file, which is \"/Users/durand/org/account/account.org\"")))
 
 ;; smart completion
+;;;###autoload
 (defun org-smart-complete-item-or-shop-or-jump-to-next-item ()
   "When after \"- \" then complete item; otherwise complete shop"
   (interactive)
@@ -525,6 +530,7 @@ the current topic."
     (org-account-jump-to-next-item))))
 
 ;; jump to next item
+;;;###autoload
 (defun org-account-jump-to-next-item ()
   "Jump to next item"
   (interactive)
@@ -535,8 +541,343 @@ the current topic."
     (indent-relative)
     (insert "- ")))
 
+;; produce a report of accounting information
+
+;;;###autoload
+;; (defvar durand-account-info nil "An alist to hold the information for separate shops")
+
+;; gather information
+
+;;;###autoload
+(defun durand-collect-shop-infos ()
+  "Return relevant information from the heading."
+  (when (= (car (org-heading-components)) 4)
+    ;; It is possible to be called inside `org-map-entries'.
+    (let* ((date-string (if (save-excursion
+                              (outline-up-heading 1)
+                              (re-search-forward org-date-tree-headline-regexp (line-end-position) t))
+                            (match-string-no-properties 1)
+                          (user-error "No matching date found!")))
+           (title
+            (save-excursion
+              (org-end-of-meta-data)
+              (org-skip-whitespace)
+              (buffer-substring-no-properties (point) (line-end-position))))
+           (cost (org-entry-get (point) "cost"))
+           (from-string (org-entry-get (point) "from"))
+           (from (when from-string
+                   (let ((ori (split-string from-string "\\( \\|:\\)"))
+                         res)
+                     (dolist (ele ori)
+                       (unless (numberp (read ele))
+                         (push ele res)))
+                     (setf res (nreverse res))
+                     (dotimes (i (length ori) res)
+                       (when (numberp (read (nth i ori)))
+                         (if (= i 0)
+                             (user-error "The first element of FROM cannot be a number!")
+                           (setf res (remove (nth (1- i) ori) res)
+                                 res (append res
+                                             (list (cons (nth (1- i) ori)
+                                                         (read (nth i ori))))))))))))
+           (balanced-from (when from-string
+                            (let (temp ave (cur 0))
+                              (dolist (ele from)
+                                (cond
+                                 ((consp ele)
+                                  (setf cur (+ cur (cdr ele))))
+                                 ((stringp ele)
+                                  (push ele temp))
+                                 (t
+                                  (user-error "ELE is strange: %s" ele))))
+                              (setf ave (/ (- (read cost) cur) (float (length temp))))
+                              (dolist (ele temp from)
+                                (setf from (remove ele from)
+                                      from (append from
+                                                   (list (cons ele ave)))))))))
+      (dolist (ele balanced-from balanced-from)
+        (setf balanced-from (remove ele balanced-from)
+              balanced-from (push (cons (car ele)
+                                        (- (cdr ele)))
+                                  balanced-from)))
+      (list date-string title cost balanced-from))))
+
+;; report
+
+;;;###autoload
+(defvar durand-account-report-period-str "LAST DAY"
+  "The string to show in report buffer.
+This should be setted by the PERIOD-FUNC argument.")
+
+;;;###autoload
+(defun durand-show-account-report (&optional period-func report-mode sum-type exclude-type)
+  "Show a report of account.
+PERIOD-FUNC should take an argument of date string, and return
+true only when that date is under consideration.
+By default PERIOD-FUNC specifies the last day only.
+REPORT-MODE can be either SEPARATE or COMBINE.
+SUM-TYPE can be ALL or a regexp matching what would be summed.
+EXCLUDE-TYPE can be nil or a regexp matching what would not be summed."
+  (with-account
+   (save-excursion
+     (goto-char (point-min))
+     (let ((period-func (or period-func 'durand-account-match-last-unit))
+           (report-mode (or report-mode 'separate))
+           (sum-type (or sum-type 'all))
+           (exclude-type (or exclude-type "Cash"))
+           infos combined)
+       (while (re-search-forward org-date-tree-headline-regexp nil t)
+         (when (funcall period-func (match-string-no-properties 1))
+           (setf infos
+                 (append
+                  infos
+                  (remove nil
+                          (org-map-entries #'durand-collect-shop-infos nil 'tree))))))
+       (cond
+        ((eq report-mode 'combine)
+         (dolist (ele infos)
+           (let* ((date (read (car ele)))
+                  (date-list (plist-get combined date))
+                  (tit (intern (cadr ele)))
+                  (cur (or (plist-get date-list tit) 0))
+                  (val (read (caddr ele))))
+             (setf combined (plist-put combined
+                                       date
+                                       (plist-put date-list tit (+ val cur)))))
+           (let* ((date (intern (car ele)))
+                  (date-list (plist-get combined date)))
+             (dolist (exp (cadddr ele))
+               (let ((cur (or (plist-get date-list (read (car exp))) 0))
+                     (tit (intern (car exp)))
+                     (val (cdr exp)))
+                 (setf combined (plist-put combined
+                                           date
+                                           (plist-put date-list tit (+ val cur)))))))))
+        ((eq report-mode 'separate)
+         (dolist (ele infos)
+           (let* ((date (read (car ele)))
+                  (date-list (plist-get combined date))
+                  (tit (intern (cadr ele)))
+                  (val (read (caddr ele))))
+             (setf combined (plist-put combined
+                                       date
+                                       (append date-list (list tit val)))))
+           (let* ((date (intern (car ele)))
+                  (date-list (plist-get combined date)))
+             (dolist (exp (cadddr ele))
+               (let ((tit (intern (car exp)))
+                     (val (cdr exp)))
+                 (setf combined (plist-put combined
+                                           date
+                                           (append date-list (list tit val)))))))))
+        (t
+         (user-error "Unknown report mode: %s" report-mode)))
+       (with-current-buffer-window
+        "*ACCOUNT REPORT*" nil nil
+        (insert (format "%s\nREPORT MODE: %s\nSUM-TYPE: %s\nEXCLUDE-TYPE: %s\n%s\n" durand-account-report-period-str
+                        report-mode sum-type exclude-type
+                        (make-string (window-width) ?-)))
+        (let ((all-total 0))
+          (dotimes (i (/ (length combined) 2))
+            (let ((day-total 0)
+                  (date (nth (* 2 i) combined))
+                  (date-info (nth (1+ (* 2 i)) combined)))
+              (insert (format "%s:\n" date))
+              (dotimes (j (/ (length date-info) 2))
+                (when (and (or (eq sum-type 'all)
+                               (string-match sum-type (format "%s" (nth (* 2 j) date-info))))
+                           (or (null exclude-type)
+                               (not (string-match exclude-type (format "%s" (nth (* 2 j) date-info))))))
+                  (incf all-total (nth (1+ (* 2 j)) date-info))
+                  (incf day-total (nth (1+ (* 2 j)) date-info)))
+                (insert (format "  %s: %s\n"
+                                (nth (* 2 j) date-info)
+                                (nth (1+ (* 2 j)) date-info))))
+              (insert (format "  %s: %s\n  %s: %s\n"
+                              'day-total day-total
+                              'all-total all-total)))))
+        (account-report-mode))
+       (select-window (get-buffer-window "*ACCOUNT REPORT*"))))))
+
+;;;###autoload
+(defun durand-date-to-time (str)
+  "Convert a date string STR to time.
+Date string should separated by either space, dash, or underline."
+  (let* ((splitted (split-string str "[ |_|-]+"))
+         (splitted-list (mapcar #'string-to-number splitted)))
+    (encode-time 0 0 0
+                 (caddr splitted-list)
+                 (cadr splitted-list)
+                 (car splitted-list))))
+
+;;;###autoload
+(defun durand-account-match-last-unit (str &optional unit)
+  "Match the last UNIT. UNIT can be `day', `week', `month', `year',
+or a custom specifier of time period."
+  (setf durand-account-report-period-str (format "%s" (or unit 'day)))
+  (with-account
+   (let* ((last-time-str (caar (last (org-find-all-days))))
+          (last-time (durand-date-to-time last-time-str))
+          (last-list (decode-time last-time))
+          (last-year (nth 5 last-list))
+          (last-month (nth 4 last-list))
+          (last-day (nth 3 last-list))
+          (str-time (durand-date-to-time str))
+          (str-list (decode-time str-time))
+          (str-year (nth 5 str-list))
+          (str-month (nth 4 str-list))
+          (str-day (nth 3 str-list)))
+     ;; Ensure that the time being matched is less than or equal to the last day
+     (assert (or (time-less-p str-time last-time)
+                 (and (= last-day str-day)
+                      (= last-month str-month)
+                      (= last-year str-year))))
+     (pcase unit
+       ((or (pred null) 'day)
+        (and (= last-day str-day)
+             (= last-month str-month)
+             (= last-year str-year)))
+       ('week
+        (>= (time-to-days str-time)
+            (- (time-to-days last-time) 7)))
+       ('month
+        (and (= last-month str-month)
+             (= last-year str-year)))
+       ('year
+        (= last-year str-year))
+       ((pred stringp)
+        (let* ((str-list (split-string unit ":"))
+               (beg-str (car str-list))
+               (end-str (cond
+                         ((not (string= (cadr str-list) ""))
+                          (cadr str-list))
+                         (t
+                          "+0")))
+               (beg (org-read-date nil t beg-str "Chois le début:"))
+               (end (org-read-date nil t end-str "Chois la fin:")))
+          (and (time-less-p beg str-time)
+               (time-less-p str-time end))))
+       (_
+        (user-error "Unknown UNIT: %s" unit))))))
+
+;; convenient functions
+
+;;;###autoload
+(defun durand-view-last-day ()
+  "Match the last day"
+  (interactive)
+  (select-window (get-buffer-window "account.org"))
+  (durand-show-account-report (lambda (str)
+                                (durand-account-match-last-unit str 'day))))
+
+;;;###autoload
+(defun durand-view-last-week ()
+  "Match the last week"
+  (interactive)
+  (select-window (get-buffer-window "account.org"))
+  (durand-show-account-report (lambda (str)
+                                (durand-account-match-last-unit str 'week))))
+
+;;;###autoload
+(defun durand-view-last-month ()
+  "Match the last month"
+  (interactive)
+  (select-window (get-buffer-window "account.org"))
+  (durand-show-account-report (lambda (str)
+                                (durand-account-match-last-unit str 'month))))
+
+;;;###autoload
+(defun durand-view-last-year ()
+  "Match the last year"
+  (interactive)
+  (select-window (get-buffer-window "account.org"))
+  (durand-show-account-report (lambda (str)
+                                (durand-account-match-last-unit str 'year))))
+
+;;;###autoload
+(defun durand-view-last-custom ()
+  "Match a custom time period"
+  (interactive)
+  (select-window (get-buffer-window "account.org"))
+  (let ((beg (read-string "Le début: "))
+        (end (read-string "La fin: ")))
+    (durand-show-account-report (lambda (str)
+                                  (durand-account-match-last-unit
+                                   str
+                                   (string-join (list beg end) ":"))))))
+
+;; define a report mode for reporting
+
+;;;###autoload
+(define-derived-mode account-report-mode special-mode "Account Report"
+  "A mode for reporting the account.
+\\<account-report-mode-map>
+Press \\[durand-view-last-day] to view the last day;
+\\[durand-view-last-week] to view the last week;
+\\[durand-view-last-month] to view the last month;
+\\[durand-view-last-year] to view the last year;
+\\[durand-view-custom] to specify a custom continuous range.")
+
+(define-key account-report-mode-map [?d] #'durand-view-last-day)
+(define-key account-report-mode-map [?w] #'durand-view-last-week)
+(define-key account-report-mode-map [?m] #'durand-view-last-month)
+(define-key account-report-mode-map [?y] #'durand-view-last-year)
+(define-key account-report-mode-map [?c] #'durand-view-last-custom)
+(define-key account-report-mode-map [?j] #'durand-view-go-to-account-day)
+(define-key account-report-mode-map [?n] #'durand-view-go-to-next-day)
+(define-key account-report-mode-map [?p] #'durand-view-go-to-previous-day)
+
+;;;###autoload
+(defun durand-view-go-to-next-day (&optional arg)
+  "Go to the next ARG day."
+  (interactive "p")
+  (forward-char)
+  (re-search-forward "^[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}" nil t arg)
+  (beginning-of-line))
+
+;;;###autoload
+(defun durand-view-go-to-previous-day (&optional arg)
+  "Go to the next ARG day."
+  (interactive "p")
+  (forward-char)
+  (re-search-forward "^[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}" nil t (- arg))
+  (beginning-of-line))
+
+;;;###autoload
+(defun durand-view-go-to-account-day ()
+  "go to the corresponding date"
+  (interactive)
+  (unless (string= (buffer-name) "*ACCOUNT REPORT*")
+    (user-error "This should only e executed in account report buffer."))
+  (cond
+   ((save-excursion
+      (beginning-of-line)
+      (looking-at "[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}"))
+    (let ((str (match-string-no-properties 0)))
+      (select-window (get-buffer-window "account.org"))
+      (goto-char (org-find-pos-of-day str))
+      (org-map-entries #'outline-show-entry nil 'tree)
+      (recenter 0)))
+   ((save-excursion
+      (beginning-of-line)
+      (looking-at "^  "))
+    (while (not (looking-at "[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}"))
+      (beginning-of-line 0))
+    (let ((str (match-string-no-properties 0)))
+      (select-window (get-buffer-window "account.org"))
+      (goto-char (org-find-pos-of-day str))
+      (org-map-entries #'outline-show-entry nil 'tree)
+      (recenter 0)))
+   (t
+    (user-error "No date specified here!")))
+  (select-window (get-buffer-window "*ACCOUNT REPORT*")))
+
 ;; define a capture minor mode for this purpose
+
+;;;###autoload
 (setq account-mode-map (make-sparse-keymap))
+
+;;;###autoload
 (define-minor-mode account-mode "For completing in capturing accounts"
   nil
   "ACCOUNT"
@@ -639,6 +980,10 @@ the current topic."
                              :log t)))
                    (org-agenda-span 'day)
                    (org-agenda-sorting-strategy '(priority-down time-up))))
+          ;; (tags "personnes"
+          ;;       ((org-super-agenda-groups
+          ;;         '((:name "Personnes" :anything t)))
+          ;;        (org-agenda-overriding-header "Personnes")))
           (todo "PENDING"
                 ((org-super-agenda-groups
                   '((:name "Des Romans" :discard (:tag "roman"))
@@ -649,10 +994,6 @@ the current topic."
                     ;; (:name "Personnes" :tag "personnes")
                     (:name "PENDING" :anything t)))
                  (org-agenda-overriding-header "PENDING")))
-          (tags "personnes"
-                ((org-super-agenda-groups
-                  '((:name "Personnes" :anything t)))
-                 (org-agenda-overriding-header "Personnes")))
           (tags "plan"
                 ((org-agenda-files '("~/org/plan.org"))
                  (org-super-agenda-groups
@@ -1230,8 +1571,9 @@ If this information is not given, the function uses the tree at point."
                   (or associate-current associate (list link ""))))
          (lien (car objet))
          (desc (read-string "Desctiption: " (let ((default (cadr objet)))
-                                              (when default
-                                                (file-name-nondirectory default)))))
+                                              (if (and default (not (string= default "")))
+                                                  (file-name-nondirectory default)
+                                                (current-kill 0 t)))))
          (nouveau-lien (org-make-link-string lien desc)))
     (if lien-courant
         (setf (buffer-substring beg end)
@@ -1361,13 +1703,14 @@ and whose `caddr' is a list of strings, the content of the note."
      (goto-char (point-min))
      (insert "#+STARTUP: showall\n")
      ;; insert log graph if any
-     (let* ((unsorted-days-list (mapcar #'time-to-days logs))
-            (sorted-days-list (sort unsorted-days-list #'<))
-            (first-day (car sorted-days-list))
-            (first-time (decode-time (car (sort logs #'time-less-p))))
-            (total-days-between (- (time-to-days (current-time)) first-day)))
-       (insert "LOGS:\n")
-       (durand-draw-days logs))
+     (ignore-errors
+       (let* ((unsorted-days-list (mapcar #'time-to-days logs))
+              (sorted-days-list (sort unsorted-days-list #'<))
+              (first-day (car sorted-days-list))
+              (first-time (decode-time (car (sort logs #'time-less-p))))
+              (total-days-between (- (time-to-days (current-time)) first-day)))
+         (insert "LOGS:\n")
+         (durand-draw-days logs)))
      (insert "\n")
      ;; insert notes
      (let ((times (mapcar #'car notes))
@@ -1880,31 +2223,31 @@ If NON-QUICK is non-nil, then offer the selection even when there is only one ca
 (defun org-open-novels (&optional arg)
   "Choose novel to open. With ARG, update novels."
   (interactive "P")
-  (if (null arg)
-      (let* ((route_du_fichier "~/org/notes.org")
-             (nom_du_tampon "notes.org")
-             (nom_du_tampon_actuel (buffer-name))
-             (déjà_ouvert (get-buffer nom_du_tampon))
-             (inhibit-message t) cands)
-        (find-file route_du_fichier)
-        (switch-to-buffer nom_du_tampon_actuel)
-        (with-current-buffer nom_du_tampon
-          (setf cands (org-map-entries #'durand-org-link-info "roman-ARCHIVE")))
-        (unwind-protect
-            (let ((liste-de-choix
-                   (let (temp)
-                     (let* ((sel (durand-choose-list cands t "Chois un roman: ")))
-                       (mapc (lambda (x)
-                               (setf temp (append temp
-                                                  (durand-choose-list
-                                                   (mapcar (lambda (x) (cons x '("1"))) (assoc-default x cands))
-                                                   t "Chois un lien: "))))
-                             sel)
-                       temp))))
-              (mapc #'browse-url liste-de-choix))
-          (when (and (not déjà_ouvert) (get-buffer nom_du_tampon))
-            (kill-buffer nom_du_tampon))))
-    (org-update-novels)))
+  (cond
+   ((null arg)
+    (let* ((route_du_fichier "~/org/notes.org")
+           (nom_du_tampon "notes.org")
+           (nom_du_tampon_actuel (buffer-name))
+           (déjà_ouvert (get-buffer nom_du_tampon))
+           (inhibit-message t) cands)
+      (find-file route_du_fichier)
+      (switch-to-buffer nom_du_tampon_actuel)
+      (with-current-buffer nom_du_tampon
+        (setf cands (org-map-entries #'durand-org-link-info "roman-ARCHIVE")))
+      (unwind-protect
+          (let ((liste-de-choix
+                 (let ((sel (durand-choose-list cands t "Chois un roman: "))
+                       temp)
+                   (dolist (ele sel temp)
+                     (setf temp (append temp
+                                        (durand-choose-list
+                                         (mapcar (lambda (x) (cons x '("1"))) (assoc-default ele cands))
+                                         t "Chois un lien: ")))))))
+            (mapc #'browse-url liste-de-choix))
+        (when (and (not déjà_ouvert) (get-buffer nom_du_tampon))
+          (kill-buffer nom_du_tampon)))))
+   (t
+    (org-update-novels))))
 
 ;;;###autoload
 (defun org-update-novels ()
@@ -2019,7 +2362,8 @@ attempts to handle them."
 (defun org-open-articles (&optional arg)
   "Open all articles, that is, entries in \"notes.org\" with \"a_voir\" tag.
 If ARG is (4), then execute `durand-update-article'.
-If ARG is (16), then open entries in \"notes.org\" with \"math\" tag."
+If ARG is (16), then open entries in \"notes.org\" with \"math\" tag.
+If ARG is (64), then execute `(durand-update-article t)'."
   (interactive "P")
   (cond
    ((or (null arg) (equal arg '(16)))
@@ -2051,27 +2395,31 @@ If ARG is (16), then open entries in \"notes.org\" with \"math\" tag."
         (when (and (not déjà_ouvert) (get-buffer nom_du_tampon))
           (kill-buffer nom_du_tampon))
         (delete-other-windows))))
-   ('(4)
+   ((equal arg '(4))
     (durand-update-article))
+   ((equal arg '(64))
+    (durand-update-article t))
    (t
     (message "This ARG is not supported: %s" arg))))
 
 ;;;###autoload
-(defun durand-update-article ()
+(defun durand-update-article (&optional math)
   "Update the link to an article;
-the link comes from the most recently stored link, so choose carefully the target to update."
+the link comes from the most recently stored link, so choose carefully the target to update.
+If MATH is non-nil, then the range is articles taged MATH but not A_VOIR, instead of A_VOIR."
   (interactive)
   (let* ((route_du_fichier "~/org/notes.org")
          (nom_du_tampon "notes.org")
          (nom_du_tampon_actuel (buffer-name))
          (déjà_ouvert (get-buffer nom_du_tampon))
+         (tag (if math "math-a_voir" "a_voir"))
          (inhibit-message t) cands)
     (find-file route_du_fichier)
     (switch-to-buffer nom_du_tampon_actuel)
     (with-current-buffer nom_du_tampon
       (setf cands (org-map-entries
                    (lambda () (let ((pos (point))) (append (durand-org-link-info) (list pos))))
-                   "a_voir"))
+                   tag))
       (setf cands (mapcar (lambda (x)
                             (cons (durand-org-filter-dates (car x)) (cdr x)))
                           cands))
@@ -2172,11 +2520,11 @@ the link comes from the most recently stored link, so choose carefully the targe
     (clean-up-buffers)
     (clean-up-buffers-regex "org$")))
 
-(defmacro with-account (account-func)
-  "Execute ACCOUNT-FUNC only when we are visiting an account file."
+(defmacro with-account (account-form)
+  "Execute ACCOUNT-FORM only when we are visiting an account file."
   (interactive)
   `(cond
-    ((string-prefix-p "account" (buffer-name)) ,account-func)
+    ((string-prefix-p "account" (buffer-name)) ,account-form)
     (t (user-error "\"%s\" is not an account file" (buffer-name)))))
 
 ;;;###autoload
@@ -2538,7 +2886,7 @@ with `C-uC-u' prefix argument, update all accounts."
 				 (save-restriction
 				   (widen)
 				   (org-find-all-days)))
-			       :re-builder 'ivy<span style="color: rgb(6,144,255)">--regex-ignore-order)
+			       :re-builder 'ivy--regex-ignore-order)
 		     current-prefix-arg))
   (with-account
    (if no-narrowp
@@ -2731,3 +3079,13 @@ with `C-uC-u' prefix argument, update all accounts."
 ;;                                                       (list an mois jour)
 ;;                                                       "-")))))))
 ;;       (number-sequence 0 total-days-between))
+
+;; (let (temp)
+;;   (let* ((sel (durand-choose-list cands t "Chois un roman: ")))
+;;     (mapc (lambda (x)
+;;             (setf temp (append temp
+;;                                (durand-choose-list
+;;                                 (mapcar (lambda (x) (cons x '("1"))) (assoc-default x cands))
+;;                                 t "Chois un lien: "))))
+;;           sel)
+;;     temp))

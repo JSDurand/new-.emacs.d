@@ -1,6 +1,7 @@
 alias la ls -lah
 alias ll ls -lh
 alias e exit
+alias jn jupyter notebook
 alias rfi cd /Users/durand/Desktop/Centre/français/rfi && ls -lah
 alias sign cd /Users/durand/Desktop/Centre/Python/;python3 auto*.py
 alias view cd /Users/durand/Desktop/Centre/Python/;open Hard\ Worker.png

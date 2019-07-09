@@ -496,6 +496,8 @@
        (global-set-key [?\H-s] 'isearch-forward)
        (setq ivy-count-format "(%d/%d) ")
        (global-set-key [?\s-f] 'counsel-find-file)
+       (setq counsel-grep-base-command
+             "rg -i -M 120 --no-heading --line-number --color never %s %s")
        ;; (global-set-key [?\M-x] 'counsel-M-x)
        (setq ivy-use-selectable-prompt t))
 
@@ -546,6 +548,19 @@
         cands
         "\n"))
      (setq ivy-format-function 'durand-ivy-format-function-arrow)
+
+     (setf ivy-format-functions-alist
+           '((counsel-compile-env . counsel-compile-env--format-hint)
+             (counsel-colors-web . counsel--colors-web-format-function)
+             (counsel-colors-emacs . counsel--colors-emacs-format-function)
+             (counsel-evil-registers . counsel--yank-pop-format-function)
+             (counsel-yank-pop . counsel--yank-pop-format-function)
+             (counsel-git-log . counsel--yank-pop-format-function)
+             (counsel-faces . counsel--faces-format-function)
+             (swiper-isearch . swiper-isearch-format-function)
+             (swiper-multi . swiper--all-format-function)
+             (t . durand-ivy-format-function-arrow)))
+
 
      ;;;###autoload
      (defun durand-ivy-format-function-generic (selected-fn other-fn cands separator)
@@ -1103,6 +1118,20 @@
                 (all-pos (nth (1- len) obj)))
            (cons (/ (car obj-pos) (car all-pos) 1.0)
                  (/ (cdr obj-pos) (cdr all-pos) 1.0)))))
+
+     ;; a temporary function to be used in pdf mode
+
+     ;;;###autoload
+     (defun durand-view-pdf-little-help-function ()
+       "Since the size does not match, I would like to adjust the size
+     a ilttle bit.
+     As a reminder, this is defined in setting.org, pdf-tools section."
+       (interactive)
+       (pdf-view-enlarge 1.56)
+       (image-forward-hscroll 34))
+
+     ;;;###autoload
+     (define-key pdf-view-mode-map [?\r] 'durand-view-pdf-little-help-function)
    #+END_SRC
 
 ** keychord
@@ -1525,6 +1554,8 @@
 
      (setf evil-cross-lines t)
      (setf evil-emacs-state-modes (delq 'pdf-view-mode evil-emacs-state-modes))
+     (add-to-list 'evil-emacs-state-modes 'durand-greek-search-mode)
+     (add-to-list 'evil-emacs-state-modes 'account-report-mode)
      (setf evil-search-module 'evil-search)
 
      (setf evil-overriding-maps (delete '(grep-mode-map) evil-overriding-maps))
@@ -1623,25 +1654,30 @@
               (interactive)
               (cond (current-prefix-arg (durand-capture))
                     (t (org-capture))))
-       [?s] (lambda ()
-              (interactive)
-              (cond
-               ((null durand-stop-timer)
-                (setf durand-stop-timer
-                      (run-with-timer
-                       (* (if (null current-prefix-arg)
-                              60
-                            (read-number "Quels minutes?" 60))
-                          60)
-                       nil
-                       'durand-stop-reminder))
-                (list-timers))
-               ((timerp durand-stop-timer)
-                (cancel-timer durand-stop-timer)
-                (setf durand-stop-timer nil))
-               (t
-                (user-error "Unknown situation"))))
+       [?s] 'durand-start-counting
        [?r] 'string-rectangle)
+
+     ;;;###autoload
+     (defun durand-start-counting (&optional arg)
+       "With ARG, ask for the number of minutes."
+       (interactive "P")
+       (cond
+        ((null durand-stop-timer)
+         (setf durand-stop-timer
+               (run-with-timer
+                (* (cond
+                    ((null arg) 60)
+                    (t
+                     (read-number "Quels minutes?" 60)))
+                   60)
+                nil
+                'durand-stop-reminder))
+         (list-timers))
+        ((timerp durand-stop-timer)
+         (cancel-timer durand-stop-timer)
+         (setf durand-stop-timer nil))
+        (t
+         (user-error "Unknown situation"))))
 
      ;; space
      (define-prefix-command 'durand-evil-space-map)
@@ -1678,7 +1714,9 @@
        [?k] 'durand-kill-buffer
        [?l] 'kill-other-buffer-window
        [?f] 'counsel-find-file
-       [?'] 'durand-edit-special
+       ;; [?'] 'durand-edit-special
+       ;; try the newer function
+       [?'] 'durand-narrow-dwim
        [?w] 'delete-other-windows
        [?W] 'delete-window
        [?q] 'quit-other-window
@@ -1883,6 +1921,70 @@
              org-noter-auto-save-last-location t
              org-noter-doc-split-fraction '(0.5 . 0.65)))
    #+end_src
+** narrow-or-widen-dwim
+
+   The idea of dwim shows its power here.
+
+   #+begin_src emacs-lisp
+     (defun durand-narrow-dwim (arg)
+       "Widen when narrowed, unless ARG is non-nil.
+     Quit org-edit-src, unless ARG is non-nil.
+     When region is active, narrow to that region.
+     In org-mode, if ARG is '(16), then execute `org-edit-special';
+     else try `org-edit-src-code', `org-narrow-to-block',
+     `org-narrow-to-subtree', and `org-edit-special' in this order.
+     Otherwise execute `narrow-to-defun'."
+       (interactive "P")
+       (cond
+        ((and (buffer-narrowed-p) (not arg)) (widen))
+        ((and (string-prefix-p "*Org Src" (buffer-name))
+              (not arg))
+         (org-edit-src-exit))
+        ((region-active-p)
+         (narrow-to-region (region-beginning) (region-end)))
+        ((derived-mode-p 'org-mode)
+         (cond
+          ((equal arg '(16))
+           (let ((current-prefix-arg nil))
+             (ignore-errors (org-edit-special nil))))
+          ((ignore-errors (org-edit-src-code) t)
+           (delete-other-windows))
+          ((ignore-errors (org-narrow-to-block) t))
+          ((ignore-errors (org-narrow-to-subtree) t))
+          ((let ((current-prefix-arg nil))
+             (ignore-errors (org-edit-special nil) t)))
+          (t (message "No pre-defined behaviour."))))
+        (t
+         (narrow-to-defun))))
+
+     ;; (define-key ctl-x-map [?n] 'durand-narrow-dwim)
+   #+end_src
+** ledger
+
+   Laisse me voir comment améliorer mon compte-rendu.
+
+   #+begin_src emacs-lisp
+     (use-package ledger-mode
+       :ensure t
+       :init
+       (setf ledger-clear-whole-transactions 1
+             ledger-complete-in-steps t)
+       :config
+       (add-to-list 'evil-emacs-state-modes 'ledger-report-mode))
+   #+end_src
+** evil-ledger
+
+   Je ne vis pas sans être mal!
+
+   #+begin_src emacs-lisp
+     (use-package evil-ledger
+       :ensure t
+       :after ledger-mode
+       :config
+       (evil-define-key* 'visual evil-ledger-mode-map [?S] #'evil-ledger-sort)
+       (add-hook 'ledger-mode-hook #'evil-ledger-mode)
+       (add-hook 'ledger-mode-hook (lambda () (setq-local pcomplete-termination-string ""))))
+   #+end_src
 
 * archive
   :PROPERTIES:
@@ -1938,6 +2040,33 @@
     ;;       (push
     ;;        (nth (mod (- len ind off-set arg) len) col)
     ;;        new-li))))
+
+    ;; The following works.
+
+    ;;;###autoload
+    (cl-defun durand-cycle-ivy-collection (&optional (arg 1))
+      (assert (numberp arg))
+      (let* ((collection (ivy-state-collection ivy-last))
+             (len (length collection))
+             (new-arg (mod arg len)))
+        (setf (ivy-state-collection ivy-last) (append (nthcdr new-arg collection)
+                                                      (subseq collection 0 new-arg))))
+      (ivy--reset-state ivy-last))
+
+    (defun durand-ivy-cycle-next-line (arg)
+      (interactive "p")
+      (durand-cycle-ivy-collection arg))
+
+    (defun durand-ivy-cycle-previous-line (arg)
+      (interactive "p")
+      (durand-cycle-ivy-collection (- arg)))
+
+
+    ;;;###autoload
+    (define-prefix-command 'durand-ivy-cycle-map)
+
+    (define-key durand-ivy-cycle-map (kbd "<down>") 'durand-ivy-cycle-next-line)
+    (define-key durand-ivy-cycle-map (kbd "<up>") 'durand-ivy-cycle-previous-line)
   #+END_SRC
 
 ** midnight mode
@@ -1991,3 +2120,17 @@
      ;;   (add-hook 'mhtml-mode-hook 'emmet-mode)
      ;;   (add-hook 'css-mode-hook 'emmet-mode))
    #+END_SRC
+** from jump buffer
+   
+   I have to admit that this seems to be a really fast way of switching between buffers.
+   
+   #+begin_src emacs-lisp
+     ;; (use-package frog-jump-buffer
+     ;;   :ensure t
+     ;;   :init
+     ;;   (setf frog-jump-buffer-max-buffers 20))
+   #+end_src
+   
+   But I do not like that design; I shall instead take the ideal of filtering buffers in
+   my own buffer switching function then.
+

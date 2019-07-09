@@ -1,13 +1,13 @@
 
 ;; ----- amx-history -----
 (
- durand-transform-code-to-greek
- durand-clear-overlays
- durand-search-greek
- durand-search-last-greek
- plain-tex-mode
- org-noter-insert-precise-note
- org-noter
+ durand-show-search-greek
+ align-regexp
+ durand-chercher-pdf
+ package-delete
+ package-list-packages
+ musique
+ evil-ledger-mode
 )
 
 ;; ----- amx-data -----
@@ -41,7 +41,7 @@
  (mu4e-compose-edit . 2)
  (save-buffer . 1)
  (recentf-edit-list . 1)
- (package-list-packages . 17)
+ (package-list-packages . 20)
  (emacs-uptime . 8)
  (emacs-init-time . 6)
  (counsel-grep . 3)
@@ -49,12 +49,12 @@
  (tex . 14)
  (eshell . 1)
  (dired-up-directory . 1)
- (package-install . 12)
+ (package-install . 13)
  (chess . 4)
  (swiper-all . 27)
  (counsel-rg . 1)
  (tv/swiper-backward . 1)
- (package-delete . 12)
+ (package-delete . 15)
  (org-toggle-item . 1)
  (org-insert-item . 2)
  (org-account-go-to-day . 13)
@@ -98,11 +98,11 @@
  (sx-search . 1)
  (sx-authenticate . 2)
  (customize . 2)
- (align-regexp . 226)
+ (align-regexp . 227)
  (list-processes . 2)
  (org-update-account . 1)
  (org-get-account-entries . 22)
- (durand-music . 17)
+ (durand-music . 18)
  (red-message . 2)
  (org-timer-pause-or-continue . 5)
  (automaton . 1)
@@ -142,15 +142,15 @@
  (dired . 1)
  (music . 22)
  (durand-music-mode . 4)
- (musique . 81)
- (durand-chercher-musique . 65)
+ (musique . 84)
+ (durand-chercher-musique . 68)
  (durand-sign . 37)
  (ansi-term . 9)
  (term . 2)
  (shell . 2)
  (ptt . 7)
  (transpose-chars-back-N . 2)
- (durand-chercher-pdf . 97)
+ (durand-chercher-pdf . 105)
  (describe-font . 1)
  (getenv . 1)
  (counsel-faces . 1)
@@ -217,12 +217,12 @@
  (magit-file-untrack . 1)
  (pdf-occur . 1)
  (pdf-view-goto-label . 3)
- (org-noter . 37)
- (org-noter-create-skeleton . 1)
- (org-noter-insert-precise-note . 10)
+ (org-noter . 39)
+ (org-noter-create-skeleton . 2)
+ (org-noter-insert-precise-note . 11)
  (org-noter-insert-note . 2)
  (pdf-tools-help . 2)
- (package-refresh-contents . 2)
+ (package-refresh-contents . 3)
  (package-install-file . 1)
  (pdf-tools-install . 3)
  (initial-setup . 1)
@@ -230,12 +230,18 @@
  (org-noter-sync-current-note . 2)
  (durand-transform-code-to-greek . 9)
  (ivy-occur . 1)
- (occur . 2)
+ (occur . 4)
  (org-odt-convert . 1)
  (org-entities-help . 1)
- (durand-search-greek . 58)
+ (durand-search-greek . 596)
  (orgtbl-mode . 1)
- (durand-search-last-greek . 27)
+ (durand-search-last-greek . 218)
  (intero-restart . 2)
- (durand-clear-overlays . 4)
+ (durand-clear-overlays . 13)
+ (durand-show-search-greek . 536)
+ (evil-ledger-align . 1)
+ (flymake-mode . 2)
+ (ledger-post-align-postings . 1)
+ (indent-relative . 1)
+ (evil-ledger-mode . 1)
 )

@@ -289,7 +289,7 @@ If ARG is non-nil, delete the buffer BN"
   (define-key latex-mode-map [?\)] 'end-exit-paren)
   (define-key latex-mode-map [?ç] 'open-back-paren)
   (define-key latex-mode-map [?\(] 'open-paren)
-  (define-key latex-mode-map [backspace] nil)
+  (define-key latex-mode-map [backspace] 'durand-delete-pair)
   (define-key latex-mode-map [?\{] 'open-curly)
   (define-key latex-mode-map [?\[] 'open-bracket)
   (define-key latex-mode-map [?\C-c ?d] 'insert-def)

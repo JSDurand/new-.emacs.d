@@ -341,16 +341,16 @@ If ARG is non-nil, then don't delete other windows"
 (setq flyspell-issue-message-flag nil)
 
 ;;;###autoload
-(defun cycle-spacing-advice (&rest args)
-  "Deletes newlines as well!"
-  (interactive)
-  (cond
-   ((and args (consp args))
-    (append (list (- (prefix-numeric-value current-prefix-arg))) (cdr args)))
-   (t
-    args)))
+;; (defun cycle-spacing-advice (&rest args)
+;;   "Deletes newlines as well!"
+;;   (interactive)
+;;   (cond
+;;    ((and args (consp args))
+;;     (append (list (- (prefix-numeric-value current-prefix-arg))) (cdr args)))
+;;    (t
+;;     args)))
 
-(advice-add 'cycle-spacing :filter-args 'cycle-spacing-advice)
+;; (advice-remove 'cycle-spacing 'cycle-spacing-advice)
 
 (define-key global-map (kbd "M-SPC") 'cycle-spacing)
 
@@ -548,7 +548,7 @@ If ARG is non-nil, then turn off mu4e as well if necessary."
                        "/Users/durand/Desktop/Centre/Mes notes/" "/Users/durand/Desktop/Centre/PDF/"
                        "/Users/durand/Desktop/Centre/Pour thèse/" "/Users/durand/Desktop/Centre/TeX/"
                        "/Users/durand/Desktop/Centre/Œuvres de professeur/"
-                       "/Users/durand/Desktop/Centre/方便與智慧無二/")
+                       "/Users/durand/Desktop/Centre/方便與智慧無二/" "/Users/durand/Desktop/Centre/Échecs")
   "La liste des dossiers où je peux chercher les fichiers pdf quand j'ai besoin.")
 
 (defface durand-pdf-dir-face '((t :foreground "orange2"))

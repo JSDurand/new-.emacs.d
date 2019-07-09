@@ -358,6 +358,11 @@ With ARG, move by that many elements."
 
 (ignore-errors (define-key company-active-map (kbd "<f1>") #'durand/company-show-doc-buffer))
 
+;; (use-package intero
+;;   :ensure t
+;;   :config
+;;   (add-hook 'haskell-mode-hook 'intero-mode))
+
 (org-babel-load-file "/Users/durand/.emacs.d/my_packages/tex.org")
 
 (use-package wrap-region
@@ -402,6 +407,8 @@ With ARG, move by that many elements."
   (global-set-key [?\H-s] 'isearch-forward)
   (setq ivy-count-format "(%d/%d) ")
   (global-set-key [?\s-f] 'counsel-find-file)
+  (setq counsel-grep-base-command
+        "rg -i -M 120 --no-heading --line-number --color never %s %s")
   ;; (global-set-key [?\M-x] 'counsel-M-x)
   (setq ivy-use-selectable-prompt t))
 
@@ -908,11 +915,15 @@ total: %d"
   ;; ;; initialise
   (pdf-tools-install)
   ;; open pdfs scaled to fit page
-  (setq-default pdf-view-display-size 'fit-width)
+  (setq-default pdf-view-display-size 'fit-width
+                pdf-annot-activate-created-annotations t)
   ;; use normal isearch
   (define-key pdf-view-mode-map (kbd "s-s") 'isearch-forward)
   (define-key pdf-view-mode-map [?j] (lambda () (interactive) (pdf-view-scroll-up-or-next-page 1)))
   (define-key pdf-view-mode-map [?k] (lambda () (interactive) (pdf-view-scroll-down-or-previous-page 1)))
+  (define-key pdf-view-mode-map [?\r] 'durand-view-pdf-little-help-function)
+
+  (define-key pdf-annot-minor-mode-map [?\C-c ?\C-a ?h] 'durand-pdf-add-highlighs)
 
   ;; Since the default pdf-links-read-link-action function does not work because of some
   ;; imagemagick errors, I decide to write my own version.
@@ -928,7 +939,41 @@ total: %d"
            (alist (cl-mapcar 'cons key-strings links)))
       (unless links
         (user-error "Aucun lien dans cette page!"))
-      (alist-get (ivy-read "Chois un lien:" alist :require-match t) alist nil nil #'string=))))
+      (alist-get (ivy-read "Chois un lien:" alist :require-match t) alist nil nil #'string=)))
+  ;; Since the default function to add highlight annotations does not work for some
+  ;; readon, I decide to write my own function.
+  (defun durand-pdf-add-highlighs ()
+    "Choose highlighting area by clicking twice instead of using regions"
+    (interactive)
+    (pdf-util-assert-pdf-window)
+    (let* ((choice-one (pdf-util-read-image-position "Chois le TOP LEFT de la première région."))
+           (choice-two (pdf-util-read-image-position "Chois le TOP LEFT de la seconde région."))
+           (coords-one (durand-pdf-convert-coors choice-one))
+           (coords-two (durand-pdf-convert-coors choice-two)))
+      (pdf-annot-add-annotation 'highlight (list (car coords-one)
+                                                 (cdr coords-one)
+                                                 (car coords-two)
+                                                 (cdr coords-two))
+                                '(("color" . "#ffff00")))))
+
+  (defun durand-pdf-convert-coors (obj)
+    "Convert to relative coordinates"
+    (let* ((len (length obj))
+           (obj-pos (nth (- len 2) obj))
+           (all-pos (nth (1- len) obj)))
+      (cons (/ (car obj-pos) (car all-pos) 1.0)
+            (/ (cdr obj-pos) (cdr all-pos) 1.0)))))
+
+;; a temporary function to be used in pdf mode
+
+;;;###autoload
+(defun durand-view-pdf-little-help-function ()
+  "Since the size does not match, I would like to adjust the size
+a ilttle bit.
+As a reminder, this is defined in setting.org, pdf-tools section."
+  (interactive)
+  (pdf-view-enlarge 1.56)
+  (image-forward-hscroll 34))
 
 ;; (use-package key-chord
 ;;   :ensure t
@@ -1274,6 +1319,7 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
 
 (setf evil-cross-lines t)
 (setf evil-emacs-state-modes (delq 'pdf-view-mode evil-emacs-state-modes))
+(add-to-list 'evil-emacs-state-modes 'durand-greek-search-mode)
 (setf evil-search-module 'evil-search)
 
 (setf evil-overriding-maps (delete '(grep-mode-map) evil-overriding-maps))
@@ -1372,25 +1418,30 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
          (interactive)
          (cond (current-prefix-arg (durand-capture))
                (t (org-capture))))
-  [?s] (lambda ()
-         (interactive)
-         (cond
-          ((null durand-stop-timer)
-           (setf durand-stop-timer
-                 (run-with-timer
-                  (* (if (null current-prefix-arg)
-                         60
-                       (read-number "Quels minutes?" 60))
-                     60)
-                  nil
-                  'durand-stop-reminder))
-           (list-timers))
-          ((timerp durand-stop-timer)
-           (cancel-timer durand-stop-timer)
-           (setf durand-stop-timer nil))
-          (t
-           (user-error "Unknown situation"))))
+  [?s] 'durand-start-counting
   [?r] 'string-rectangle)
+
+;;;###autoload
+(defun durand-start-counting (&optional arg)
+  "With ARG, ask for the number of minutes."
+  (interactive "P")
+  (cond
+   ((null durand-stop-timer)
+    (setf durand-stop-timer
+          (run-with-timer
+           (* (cond
+               ((null arg) 60)
+               (t
+                (read-number "Quels minutes?" 60)))
+              60)
+           nil
+           'durand-stop-reminder))
+    (list-timers))
+   ((timerp durand-stop-timer)
+    (cancel-timer durand-stop-timer)
+    (setf durand-stop-timer nil))
+   (t
+    (user-error "Unknown situation"))))
 
 ;; space
 (define-prefix-command 'durand-evil-space-map)
@@ -1427,13 +1478,16 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
   [?k] 'durand-kill-buffer
   [?l] 'kill-other-buffer-window
   [?f] 'counsel-find-file
-  [?'] 'durand-edit-special
+  ;; [?'] 'durand-edit-special
+  ;; try the newer function
+  [?'] 'durand-narrow-dwim
   [?w] 'delete-other-windows
   [?W] 'delete-window
   [?q] 'quit-other-window
   [?z] 'capitalize-region-or-word
   [?t] 'avy-goto-char-timer
-  [?:] 'durand-comment-dwim
+  [?:] 'evil-commenter
+  ;; [?:] 'durand-comment-dwim
   [?,] 'evil-goto-first-line
   [?\;] 'evil-goto-line
   [?\s-x] (lambda ()
@@ -1448,9 +1502,9 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
 
 (evil-define-key nil durand-evil-dollar-map
   [?\d] 'back-to-indentation
-  [?$] (lambda () (interactive) (recenter 0))
-  [?m] (lambda () (interactive) (recenter (/ (window-body-height) 2)))
-  [?-] (lambda () (interactive) (recenter -3))
+  [?t] (lambda () (interactive) (recenter 0))
+  [?z] (lambda () (interactive) (recenter (/ (window-body-height) 2)))
+  [?b] (lambda () (interactive) (recenter -3))
   [?£] 'org-retreat)
 
 ;; motion map
@@ -1460,10 +1514,12 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
   [32] durand-evil-space-map
   [?\r] durand-evil-ret-map
   [?\d] 'durand-other-buffer
-  [?$] durand-evil-dollar-map
+  ;; [?$] durand-evil-dollar-map
+  [?$] 'evil-end-of-line
   [?i] 'evil-emacs-state
   [40] 'universal-argument
   [?x] 'amx
+  [?\)] 'evil-forward-paragraph
   [?Q] 'quit-window)
 
 ;; normal mode
@@ -1481,7 +1537,8 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
   [backspace] 'durand-other-buffer
   [32] durand-evil-space-map
   [?\r] durand-evil-ret-map
-  [?\)] 'durand-end-of-line-or-block
+  ;; [?\)] 'durand-end-of-line-or-block
+  [?\)] 'evil-forward-paragraph
   [?s] 'durand-general-save-buffer
   [f10] 'durand-general-save-buffer
   [f9] (lambda () (interactive) (when (functionp durand-tex-action) (funcall durand-tex-action)))
@@ -1493,7 +1550,8 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
   [?\"] 'evil-use-register
   [?'] 'fill-paragraph
   [?£] 'org-advance
-  [?$] durand-evil-dollar-map
+  ;; [?$] durand-evil-dollar-map
+  [?$] 'evil-end-of-line
   [?i] 'evil-insert-state
   [?j] 'evil-next-visual-line
   [?k] 'evil-previous-visual-line
@@ -1514,8 +1572,9 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
   [?\s-m] 'durand-toggle-mode-line
   [?ù] 'evil-goto-mark
   [?S] 'cycle-spacing
-  [?z] 'downcase-region-or-word
-  [?Z] 'upcase-region-or-word
+  ;; [?z] 'downcase-region-or-word
+  ;; [?Z] 'upcase-region-or-word
+  [?z] durand-evil-dollar-map
   (kbd "C-SPC") 'set-mark-command
   [?=] 'evil-ex-search-forward
   [?/] 'counsel-grep-or-swiper
@@ -1540,7 +1599,7 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
   [?\C-a] 'evil-numbers/inc-at-pt
   [?\C-x] 'evil-numbers/dec-at-pt
   [?\(] 'universal-argument
-  [?à] 'durand-beginning-of-line-or-block)
+  [?\à] 'durand-beginning-of-line-or-block)
 
 ;; universal argument mode
 (define-key universal-argument-map [?\(] 'universal-argument-more)
@@ -1617,7 +1676,57 @@ next VCOUNT - 1 lines below the current one."
   :config
   (setf org-noter-notes-search-path '("~/org/mes-notes")
         org-noter-notes-window-location 'vertical-split
-        org-noter-auto-save-last-location t))
+        org-noter-auto-save-last-location t
+        org-noter-doc-split-fraction '(0.5 . 0.65)))
+
+(defun durand-narrow-dwim (arg)
+  "Widen when narrowed, unless ARG is non-nil.
+Quit org-edit-src, unless ARG is non-nil.
+When region is active, narrow to that region.
+In org-mode, if ARG is '(16), then execute `org-edit-special';
+else try `org-edit-src-code', `org-narrow-to-block',
+`org-narrow-to-subtree', and `org-edit-special' in this order.
+Otherwise execute `narrow-to-defun'."
+  (interactive "P")
+  (cond
+   ((and (buffer-narrowed-p) (not arg)) (widen))
+   ((and (string-prefix-p "*Org Src" (buffer-name))
+         (not arg))
+    (org-edit-src-exit))
+   ((region-active-p)
+    (narrow-to-region (region-beginning) (region-end)))
+   ((derived-mode-p 'org-mode)
+    (cond
+     ((equal arg '(16))
+      (let ((current-prefix-arg nil))
+        (ignore-errors (org-edit-special nil))))
+     ((ignore-errors (org-edit-src-code) t)
+      (delete-other-windows))
+     ((ignore-errors (org-narrow-to-block) t))
+     ((ignore-errors (org-narrow-to-subtree) t))
+     ((let ((current-prefix-arg nil))
+        (ignore-errors (org-edit-special nil) t)))
+     (t (message "No pre-defined behaviour."))))
+   (t
+    (narrow-to-defun))))
+
+;; (define-key ctl-x-map [?n] 'durand-narrow-dwim)
+
+(use-package ledger-mode
+  :ensure t
+  :init
+  (setf ledger-clear-whole-transactions 1
+        ledger-complete-in-steps t)
+  :config
+  (add-to-list 'evil-emacs-state-modes 'ledger-report-mode))
+
+(use-package evil-ledger
+  :ensure t
+  :after ledger-mode
+  :config
+  (evil-define-key* 'visual evil-ledger-mode-map [?S] #'evil-ledger-sort)
+  (add-hook 'ledger-mode-hook #'evil-ledger-mode)
+  (add-hook 'ledger-mode-hook (lambda () (setq-local pcomplete-termination-string ""))))
 
 ;; (ivy-read "HI: " '("ffa" "ffb" "ffba" "ffaa")
 ;; 	  :unwind (lambda () (setq durand-changed nil)))
@@ -1706,3 +1815,8 @@ next VCOUNT - 1 lines below the current one."
 ;;   :config
 ;;   (add-hook 'mhtml-mode-hook 'emmet-mode)
 ;;   (add-hook 'css-mode-hook 'emmet-mode))
+
+;; (use-package frog-jump-buffer
+;;   :ensure t
+;;   :init
+;;   (setf frog-jump-buffer-max-buffers 20))
