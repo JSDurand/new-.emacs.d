@@ -624,7 +624,10 @@ EXCLUDE-TYPE can be nil or a regexp matching what would not be summed."
      (let ((period-func (or period-func 'durand-account-match-last-unit))
            (report-mode (or report-mode 'separate))
            (sum-type (or sum-type 'all))
-           (exclude-type (or exclude-type "Cash"))
+           (exclude-type (cond ((or (null exclude-type) (string= exclude-type ""))
+                                "Cash\\|CTBC-bank-account\\|etique")
+                               (t
+                                exclude-type)))
            infos combined)
        (while (re-search-forward org-date-tree-headline-regexp nil t)
          (when (funcall period-func (match-string-no-properties 1))
@@ -686,7 +689,7 @@ EXCLUDE-TYPE can be nil or a regexp matching what would not be summed."
               (dotimes (j (/ (length date-info) 2))
                 (when (and (or (eq sum-type 'all)
                                (string-match sum-type (format "%s" (nth (* 2 j) date-info))))
-                           (or (null exclude-type)
+                           (or (eq exclude-type 'nothing)
                                (not (string-match exclude-type (format "%s" (nth (* 2 j) date-info))))))
                   (incf all-total (nth (1+ (* 2 j)) date-info))
                   (incf day-total (nth (1+ (* 2 j)) date-info)))
@@ -697,7 +700,8 @@ EXCLUDE-TYPE can be nil or a regexp matching what would not be summed."
                               'day-total day-total
                               'all-total all-total)))))
         (account-report-mode))
-       (select-window (get-buffer-window "*ACCOUNT REPORT*"))))))
+       (select-window (get-buffer-window "*ACCOUNT REPORT*"))
+       (delete-other-windows)))))
 
 ;;;###autoload
 (defun durand-date-to-time (str)
@@ -763,48 +767,99 @@ or a custom specifier of time period."
 ;; convenient functions
 
 ;;;###autoload
+(cl-defun durand-change-parameter (&key unit report-mode sum-type exclude-type)
+  "general function to change the parameters of account reporting"
+  (let* ((this-buffer (current-buffer))
+         (this-window (selected-window))
+         (account-buffer-name "account.org")
+         cur-u cur-rm cur-st cur-et)
+    (when (get-buffer "*ACCOUNT REPORT*")
+      (switch-to-buffer "*ACCOUNT REPORT*")
+      (goto-char (point-min))
+      (setf cur-u (let* ((str (buffer-substring-no-properties (point) (line-end-position))))
+                    (cond ((string= str "day") (intern str))
+                          ((string= str "week") (intern str))
+                          ((string= str "month") (intern str))
+                          ((string= str "year") (intern str))
+                          (t str)))
+            cur-rm (intern (progn
+                             (forward-line)
+                             (buffer-substring-no-properties (+ 13 (point)) (line-end-position))))
+            cur-st (let ((st (progn
+                               (forward-line)
+                               (buffer-substring-no-properties (+ 10 (point)) (line-end-position)))))
+                     (cond ((string= st "all") 'all)
+                           (t st)))
+            cur-et (let ((et (progn
+                               (forward-line)
+                               (buffer-substring-no-properties (+ 14 (point)) (line-end-position)))))
+                     (cond ((string= et "nothing") 'nothing)
+                           (t et)))))
+    (cond ((get-buffer account-buffer-name) (switch-to-buffer account-buffer-name))
+          (t (find-file (expand-file-name
+                         account-buffer-name
+                         (expand-file-name "account" org-directory)))))
+    (durand-show-account-report (lambda (str)
+                                  (durand-account-match-last-unit
+                                   str (or unit cur-u)))
+                                (or report-mode cur-rm)
+                                (or sum-type cur-st)
+                                (or exclude-type cur-et))))
+
+;;;###autoload
 (defun durand-view-last-day ()
   "Match the last day"
   (interactive)
-  (select-window (get-buffer-window "account.org"))
-  (durand-show-account-report (lambda (str)
-                                (durand-account-match-last-unit str 'day))))
+  (durand-change-parameter :unit 'day))
 
 ;;;###autoload
 (defun durand-view-last-week ()
   "Match the last week"
   (interactive)
-  (select-window (get-buffer-window "account.org"))
-  (durand-show-account-report (lambda (str)
-                                (durand-account-match-last-unit str 'week))))
+  (durand-change-parameter :unit 'week))
 
 ;;;###autoload
 (defun durand-view-last-month ()
   "Match the last month"
   (interactive)
-  (select-window (get-buffer-window "account.org"))
-  (durand-show-account-report (lambda (str)
-                                (durand-account-match-last-unit str 'month))))
+  (durand-change-parameter :unit 'month))
 
 ;;;###autoload
 (defun durand-view-last-year ()
   "Match the last year"
   (interactive)
-  (select-window (get-buffer-window "account.org"))
-  (durand-show-account-report (lambda (str)
-                                (durand-account-match-last-unit str 'year))))
+  (durand-change-parameter :unit 'year))
 
 ;;;###autoload
 (defun durand-view-last-custom ()
   "Match a custom time period"
   (interactive)
-  (select-window (get-buffer-window "account.org"))
   (let ((beg (read-string "Le début: "))
         (end (read-string "La fin: ")))
-    (durand-show-account-report (lambda (str)
-                                  (durand-account-match-last-unit
-                                   str
-                                   (string-join (list beg end) ":"))))))
+    (durand-change-parameter :unit (string-join (list beg end) ":"))))
+
+;;;###autoload
+(defun durand-view-include ()
+  "Change sum-type"
+  (interactive)
+  (let ((st (read-string "Inclus: ")))
+    (durand-change-parameter :sum-type st)))
+
+;;;###autoload
+(defun durand-view-exclude ()
+  "Change exclude-type"
+  (interactive)
+  (let ((et (read-string "Exclus: ")))
+    (durand-change-parameter :exclude-type et)))
+
+;;;###autoload
+(defun durand-view-repot-mode ()
+  "Change report-mode"
+  (interactive)
+  (durand-change-parameter :report-mode (cond ((string= (ivy-read "Mode: " '("separate" "combine"))
+                                                        "separate")
+                                               'separate)
+                                              (t 'combine))))
 
 ;; define a report mode for reporting
 
@@ -816,13 +871,16 @@ Press \\[durand-view-last-day] to view the last day;
 \\[durand-view-last-week] to view the last week;
 \\[durand-view-last-month] to view the last month;
 \\[durand-view-last-year] to view the last year;
-\\[durand-view-custom] to specify a custom continuous range.")
+\\[durand-view-last-custom] to specify a custom continuous range.")
 
 (define-key account-report-mode-map [?d] #'durand-view-last-day)
 (define-key account-report-mode-map [?w] #'durand-view-last-week)
 (define-key account-report-mode-map [?m] #'durand-view-last-month)
 (define-key account-report-mode-map [?y] #'durand-view-last-year)
 (define-key account-report-mode-map [?c] #'durand-view-last-custom)
+(define-key account-report-mode-map [?s] #'durand-view-include)
+(define-key account-report-mode-map [?e] #'durand-view-exclude)
+(define-key account-report-mode-map [?r] #'durand-view-repot-mode)
 (define-key account-report-mode-map [?j] #'durand-view-go-to-account-day)
 (define-key account-report-mode-map [?n] #'durand-view-go-to-next-day)
 (define-key account-report-mode-map [?p] #'durand-view-go-to-previous-day)

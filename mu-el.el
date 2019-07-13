@@ -18,7 +18,7 @@
 (use-package elfeed
   :ensure t
   :config
-  (global-set-key [?\C-x ?w] 'elfeed))
+  (define-key ctl-x-map [?w] #'elfeed))
 
 ;; Sometimes elfeed crashes emacs, and I cannot find the reason.
 (setq elfeed-feeds
@@ -27,19 +27,19 @@
 	("http://planet.emacsen.org/atom.xml"
 	 emacs
 	 blog)
-	("https://lukesmith.xyz/rss.xml"
-	 luke
-	 blog)
+	;; ("https://lukesmith.xyz/rss.xml"
+	;;  luke
+	;;  blog)
 	("http://notrelated.libsyn.com/rss"
 	 luke
 	 relevant
 	 podcast)
-	("https://stackexchange.com/feeds/tagsets/347224/favorite-tags?sort=active"
-	 stackexchange
-	 favorite)
-	("https://stackexchange.com/feeds/tagsets/347226/real-love?sort=active"
-	 real-love
-	 interests)
+	;; ("https://stackexchange.com/feeds/tagsets/347224/favorite-tags?sort=active"
+	;;  stackexchange
+	;;  favorite)
+	;; ("https://stackexchange.com/feeds/tagsets/347226/real-love?sort=active"
+	;;  real-love
+	;;  interests)
 	("https://www.reddit.com/r/emacs/.rss"
 	 emacs
 	 reddit)
@@ -50,9 +50,9 @@
 	 interests
 	 mattbaker
 	 blog)
-	("https://www.youtube.com/feeds/videos.xml?channel_id=UCTfRwznpxtbjQQQJ_15Fk2w"
-	 youtube
-	 3M)
+	;; ("https://www.youtube.com/feeds/videos.xml?channel_id=UCTfRwznpxtbjQQQJ_15Fk2w"
+	;;  youtube
+	;;  3M)
 	("https://www.youtube.com/feeds/videos.xml?channel_id=UCYO_jab_esuFRV4b17AJtAw"
 	 youtube
 	 3blue1brown)
@@ -60,12 +60,12 @@
 	;;  youtube
 	;;  music
 	;;  lindsey)
-	("https://www.youtube.com/feeds/videos.xml?channel_id=UCPRWWKG0VkBA0Pqa4Jr5j0Q"
-	 youtube
-	 joeman)
-	("https://www.youtube.com/feeds/videos.xml?channel_id=UCjhwHd3mgmqm0ONm0bXKmng"
-	 youtube
-	 anju)
+	;; ("https://www.youtube.com/feeds/videos.xml?channel_id=UCPRWWKG0VkBA0Pqa4Jr5j0Q"
+	;;  youtube
+	;;  joeman)
+	;; ("https://www.youtube.com/feeds/videos.xml?channel_id=UCjhwHd3mgmqm0ONm0bXKmng"
+	;;  youtube
+	;;  anju)
 	("https://www.youtube.com/feeds/videos.xml?channel_id=UCcXhhVwCT6_WqjkEniejRJQ"
 	 wintergarten
 	 youtube)
@@ -75,10 +75,10 @@
 	;; ("https://www.youtube.com/feeds/videos.xml?channel_id=UCKSiE8dIEWsT-1jQCGrOqtw"
 	;;  youtube
 	;;  little-white)
-	("https://math.stackexchange.com/feeds/question/2883754"
-	 math
-	 relation
-	 important)
+	;; ("https://math.stackexchange.com/feeds/question/2883754"
+	;;  math
+	;;  relation
+	;;  important)
 	;; ("https://haskellweekly.news/haskell-weekly.atom"
 	;;  haskell
 	;;  relevant
@@ -131,7 +131,26 @@
   (define-key elfeed-search-mode-map [?h] 'haskell-tag-toggler)
   (define-key elfeed-search-mode-map [?b] 'elfeed-visit-or-play-with-mpv)
   (define-key elfeed-search-mode-map [?d] 'elfeed-download-youtube)
+  (define-key elfeed-search-mode-map [?n] #'elfeed-next-entry)
+  (define-key elfeed-search-mode-map [?p] #'elfeed-previous-entry)
   (define-key elfeed-show-mode-map [?b] 'elfeed-visit-or-play-with-mpv))
+
+
+;;;###autoload
+(defun elfeed-next-entry (&optional arg)
+  "Go to the next entry in elfeed search buffer."
+  (interactive "p")
+  (when (looking-at "^[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}")
+    (forward-char))
+  (re-search-forward "^[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}" nil t arg)
+  (beginning-of-visual-line))
+
+;;;###autoload
+(defun elfeed-previous-entry (&optional arg)
+  "Go to the previous entry in elfeed search buffer."
+  (interactive "p")
+  (re-search-forward "^[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}" nil t (- arg))
+  (beginning-of-visual-line))
 
 (setq-default elfeed-search-filter "@1week-ago +unread")
 
@@ -153,8 +172,7 @@
 ;; play youtube video
 ;;;###autoload
 (defun durand-play-with-mpv (quality url)
-  "
-Play a given URL with mpv."
+  " Play a given URL with mpv."
   (interactive (list (durand-get-quality-val)
 		     (read-string "Enter URL: ")))
   (let ((quality-arg "")
@@ -176,8 +194,7 @@ Play a given URL with mpv."
 
 ;;;###autoload
 (defun durand-play-with-mpv-in-elfeed (quality)
-  "
-If currently visiting a youtube feed entry or if the cursor is on a youtube feed entry,
+  "If currently visiting a youtube feed entry or if the cursor is on a youtube feed entry,
 then play the video with mpv with QUALITY, else just inform this is not a youtube link."
   (interactive (list (durand-get-quality-val)))
   (let ((entry (if (eq major-mode 'elfeed-show-mode)
@@ -616,3 +633,61 @@ the query history stack."
        maxnum
        mu4e-headers-skip-duplicates
        mu4e-headers-include-related))))
+
+;; two timers
+
+;;;###autoload
+(defun durand-mu4e-open-if-necessary ()
+  "If `mu4e' is not already open, then open it."
+  (cond
+   ((get-process " *mu4e-proc*")
+    (message "déjà ouvert"))
+   (t
+    (mu4e)
+    (message "ouvert maintenant"))))
+
+;;;###autoload
+(defun durand-mu4e-close-if-necessary ()
+  "If `mu4e' is open, then close it."
+  (cond
+   ((get-process " *mu4e-proc*")
+    (mu4e-quit)
+    (message "fermé maintenant"))
+   (t
+    (message "déjà fermé"))))
+
+;;;###autoload
+(setf durand-mu4e-open-timer
+      (let* ((cur (decode-time (current-time)))
+             (cur-year (nth 5 cur))
+             (cur-month (nth 4 cur))
+             (cur-day (nth 3 cur))
+             (cur-hour (nth 2 cur)))
+        (run-with-timer
+         (float-time
+          (time-subtract
+           (cond
+            ((>= cur-hour 9)
+             (encode-time 0 0 9 (1+ cur-day) cur-month cur-year))
+            (t
+             (encode-time 0 0 9 cur-day cur-month cur-year)))
+           nil))
+         (* 24 60 60) ;; a day
+         #'durand-mu4e-open-if-necessary))
+      durand-mu4e-close-timer
+      (let* ((cur (decode-time (current-time)))
+             (cur-year (nth 5 cur))
+             (cur-month (nth 4 cur))
+             (cur-day (nth 3 cur))
+             (cur-hour (nth 2 cur)))
+        (run-with-timer
+         (float-time
+          (time-subtract
+           (cond
+            ((>= cur-hour 22)
+             (encode-time 0 0 22 (1+ cur-day) cur-month cur-year))
+            (t
+             (encode-time 0 0 22 cur-day cur-month cur-year)))
+           nil))
+         (* 24 60 60) ;; a day
+         #'durand-mu4e-close-if-necessary)))

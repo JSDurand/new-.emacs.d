@@ -518,6 +518,36 @@
              (ivy--reset-state ivy-last))
            "kill"))))
 
+     ;; add evil integration with swiper-isearch
+
+     ;;;###autoload
+     (defun swiper-isearch-action (x)
+       "Move to X for `swiper-isearch'."
+       (if (or (numberp x)
+               (and (> (length x) 0)
+                    (setq x (get-text-property 0 'point x))))
+           (with-ivy-window
+             (goto-char x)
+             (isearch-range-invisible (line-beginning-position)
+                                      (line-end-position))
+             (unless (eq ivy-exit 'done)
+               (swiper--cleanup)
+               (swiper--delayed-add-overlays)
+               (swiper--add-cursor-overlay
+                (ivy-state-window ivy-last))))
+         (swiper--cleanup))
+       ;; integration with evil-mode's search
+       (let ((re (ivy--regex ivy-text)))
+         (when (bound-and-true-p evil-mode)
+           (when (eq evil-search-module 'isearch)
+             (setq isearch-string ivy-text))
+           (when (eq evil-search-module 'evil-search)
+             (add-to-history 'evil-ex-search-history re)
+             (setq evil-ex-search-pattern (list re t t))
+             (setq evil-ex-search-direction 'forward)
+             (when evil-ex-search-persistent-highlight
+               (evil-ex-search-activate-highlight evil-ex-search-pattern))))))
+
      ;; minibuffer color customisation
      (set-face-foreground 'minibuffer-prompt "goldenrod2")
      (set-face-background 'minibuffer-prompt "chocolate4")
@@ -533,6 +563,10 @@
        (interactive)
        (when (get-buffer buf)
          (kill-buffer buf)))
+
+     ;; ivy-re for swiper-isearch
+
+     (add-to-list 'ivy-re-builders-alist (cons 'swiper-isearch 'ivy--regex-ignore-order))
 
      ;;;###autoload
      (defun durand-ivy-format-function-arrow (cands)
@@ -1556,6 +1590,7 @@
      (setf evil-emacs-state-modes (delq 'pdf-view-mode evil-emacs-state-modes))
      (add-to-list 'evil-emacs-state-modes 'durand-greek-search-mode)
      (add-to-list 'evil-emacs-state-modes 'account-report-mode)
+     (add-to-list 'evil-emacs-state-modes 'elfeed-search-mode)
      (setf evil-search-module 'evil-search)
 
      (setf evil-overriding-maps (delete '(grep-mode-map) evil-overriding-maps))
@@ -1812,6 +1847,7 @@
        ;; [?Z] 'upcase-region-or-word
        [?z] durand-evil-dollar-map
        (kbd "C-SPC") 'set-mark-command
+       ;; [?=] 'swiper-isearch
        [?=] 'evil-ex-search-forward
        [?/] 'counsel-grep-or-swiper
        [?<] 'er/expand-region
@@ -1959,32 +1995,6 @@
 
      ;; (define-key ctl-x-map [?n] 'durand-narrow-dwim)
    #+end_src
-** ledger
-
-   Laisse me voir comment améliorer mon compte-rendu.
-
-   #+begin_src emacs-lisp
-     (use-package ledger-mode
-       :ensure t
-       :init
-       (setf ledger-clear-whole-transactions 1
-             ledger-complete-in-steps t)
-       :config
-       (add-to-list 'evil-emacs-state-modes 'ledger-report-mode))
-   #+end_src
-** evil-ledger
-
-   Je ne vis pas sans être mal!
-
-   #+begin_src emacs-lisp
-     (use-package evil-ledger
-       :ensure t
-       :after ledger-mode
-       :config
-       (evil-define-key* 'visual evil-ledger-mode-map [?S] #'evil-ledger-sort)
-       (add-hook 'ledger-mode-hook #'evil-ledger-mode)
-       (add-hook 'ledger-mode-hook (lambda () (setq-local pcomplete-termination-string ""))))
-   #+end_src
 
 * archive
   :PROPERTIES:
@@ -2120,7 +2130,7 @@
      ;;   (add-hook 'mhtml-mode-hook 'emmet-mode)
      ;;   (add-hook 'css-mode-hook 'emmet-mode))
    #+END_SRC
-** from jump buffer
+** frog jump buffer
    
    I have to admit that this seems to be a really fast way of switching between buffers.
    
@@ -2133,4 +2143,31 @@
    
    But I do not like that design; I shall instead take the ideal of filtering buffers in
    my own buffer switching function then.
+
+** ledger
+
+   Laisse me voir comment améliorer mon compte-rendu.
+
+   #+begin_src emacs-lisp
+     ;; (use-package ledger-mode
+     ;;   :ensure t
+     ;;   :init
+     ;;   (setf ledger-clear-whole-transactions 1
+     ;;         ledger-complete-in-steps t)
+     ;;   :config
+     ;;   (add-to-list 'evil-emacs-state-modes 'ledger-report-mode))
+   #+end_src
+** evil-ledger
+
+   Je ne vis pas sans être mal!
+
+   #+begin_src emacs-lisp
+     ;; (use-package evil-ledger
+     ;;   :ensure t
+     ;;   :after ledger-mode
+     ;;   :config
+     ;;   (evil-define-key* 'visual evil-ledger-mode-map [?S] #'evil-ledger-sort)
+     ;;   (add-hook 'ledger-mode-hook #'evil-ledger-mode)
+     ;;   (add-hook 'ledger-mode-hook (lambda () (setq-local pcomplete-termination-string ""))))
+   #+end_src
 

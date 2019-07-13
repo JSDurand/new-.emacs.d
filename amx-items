@@ -2,8 +2,8 @@
 ;; ----- amx-history -----
 (
  durand-show-search-greek
- align-regexp
  durand-chercher-pdf
+ align-regexp
  package-delete
  package-list-packages
  musique
@@ -150,7 +150,7 @@
  (shell . 2)
  (ptt . 7)
  (transpose-chars-back-N . 2)
- (durand-chercher-pdf . 105)
+ (durand-chercher-pdf . 106)
  (describe-font . 1)
  (getenv . 1)
  (counsel-faces . 1)
@@ -238,7 +238,7 @@
  (durand-search-last-greek . 218)
  (intero-restart . 2)
  (durand-clear-overlays . 13)
- (durand-show-search-greek . 536)
+ (durand-show-search-greek . 552)
  (evil-ledger-align . 1)
  (flymake-mode . 2)
  (ledger-post-align-postings . 1)
