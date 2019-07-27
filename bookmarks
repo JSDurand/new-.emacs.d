@@ -2,11 +2,11 @@
 ;;; This format is meant to be slightly human-readable;
 ;;; nevertheless, you probably don't want to edit it.
 ;;; -*- End Of Bookmark File Format Version Stamp -*-
-(("account.ledger"
- (filename . "~/ledger/account.ledger")
+(("account.org"
+ (filename . "~/org/account/account.org")
  (front-context-string)
- (rear-context-string . "         -99NTD\n")
- (position . 315))
+ (rear-context-string . "麵線\n\n     - 蚵仔麵線\n")
+ (position . 21981))
 ("CV vieil"
  (filename . "~/Desktop/Centre/À propos de NTU/Applications/Moi/CV.pdf")
  (position . 1)
@@ -18,13 +18,13 @@
 ("ex"
  (filename . "~/org/grec/ex.org")
  (front-context-string)
- (rear-context-string . "it 31\n** exercis")
- (position . 12724))
+ (rear-context-string . " durand-greek\n  ")
+ (position . 13768))
 ("vocab.org"
  (filename . "~/org/grec/vocab.org")
  (front-context-string)
  (rear-context-string . "c durand-greek\n ")
- (position . 109696))
+ (position . 110663))
 ("CV"
  (filename . "~/Desktop/Centre/Mes notes/Les Notes/Applications/CV.tex")
  (front-context-string . "\n\n\\bnop\n\\imp Fra")
@@ -40,31 +40,11 @@
  (front-context-string . "** PENDING 法师亚当最")
  (rear-context-string . "- 第1章]]\n   咒术法师\n")
  (position . 18602))
-("emacs"
- (filename . "~/org/emacs-presentation.org")
- (front-context-string)
- (rear-context-string . "rc\n* live coding")
- (position . 14627))
 ("ideal"
  (filename . "~/.emacs.d/my_packages/ideal/ideal.el")
  (front-context-string . "(setf durand-jum")
  (rear-context-string . ";; some actions\n")
  (position . 3953))
-("scratch.tex"
- (filename . "~/Desktop/Centre/Mes notes/Les papiers/jouer/scratch.tex")
- (front-context-string)
- (rear-context-string . "sseur Tan donc.\n")
- (position . 9876))
-("topologie et cohomologie.tex"
- (filename . "~/Desktop/Centre/Mes notes/Les papiers/jouer/topologie et cohomologie.tex")
- (front-context-string)
- (rear-context-string . "e cohomologie!\n\n")
- (position . 1071))
-("français"
- (filename . "~/org/français/français.org")
- (front-context-string . "#+TITLE: File fo")
- (rear-context-string)
- (position . 1))
 ("wiki.org"
  (filename . "~/org/wiki.org")
  (front-context-string . "* Abstractions  ")
@@ -94,15 +74,10 @@
  (rear-context-string . "))\n   #+END_SRC\n")
  (position . 79238))
 ("org-capture-last-stored"
- (filename . "~/org/aujourdhui.org")
- (front-context-string . "* TODO [#A] Prép")
- (rear-context-string . "is par exemple?\n")
- (position . 13975))
-("university-plan.org"
- (filename . "~/org/university-plan/university-plan.org")
- (front-context-string . "* Purpose\n  I sh")
- (rear-context-string)
- (position . 1))
+ (filename . "~/org/diary.org")
+ (front-context-string . "**** An fundamen")
+ (rear-context-string . "-07-26 Vendredi\n")
+ (position . 26927))
 ("setting.org"
  (filename . "~/.emacs.d/setting.org")
  (front-context-string . "** my hydras\n   ")

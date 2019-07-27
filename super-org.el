@@ -6,6 +6,11 @@
   :ensure t
   :defer t
   :config
+  (require 'org)
+  ;; use amsfont in latex preview
+  (setf org-latex-packages-alist '(("" "amsfonts" t)))
+  (setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
+  
   ;; Necessary since org-mode 9.2
   (require 'org-tempo)
   (add-to-list 'org-structure-template-alist '("g" . "src durand-greek"))
@@ -26,9 +31,9 @@
                                     (0.0 . default))
         org-agenda-block-separator ?\—
         org-pretty-entities t)
+  (org-babel-load-file "/Users/durand/.emacs.d/my_packages/tex.org")
   (add-hook 'org-mode-hook '(lambda ()
-			      (define-key org-mode-map [?\ù] 'org-advance)
-			      (define-key org-mode-map [?\ç] 'org-retreat)))
+			      (define-key org-mode-map [?\ù] abbrev-prefix-map)))
   ;; (add-hook 'org-archive-hook 'org-archive-kill-archive-file)
   (require 'org-agenda)
   (require 'org-super-agenda)
@@ -271,10 +276,7 @@ the current topic."
 
 ;; The original org-protocol-convert handles youtube links wrong
 (setq org-capture-templates
-      '(;; ("m" "Template for MaoBaoBao Notes" entry
-	;;  (file+headline "~/org/wiki.org" "MaoBaoBao Notes")
-	;;  "* day %U\n  %?")
-	("m" "Account records" entry
+      '(("m" "Account records" entry
 	 (file+datetree "~/org/account/account.org")
 	 "* %^{ITEM|breakfast|brunch|brunverage|lunch|dinner|beverage|snack|fruit}\n  :PROPERTIES:\n  :cost: %^{COST|0}\n  :FROM: %^{FROM|Cash}\n  :RECORD_TIME: %U\n  :END:\n  %?\n\n  - "
 	 :jump-to-captured t)
@@ -313,10 +315,6 @@ the current topic."
 	 "* MEMO %^{word}\n  :PROPERTIES:\n  :STORY: %\\2\n  :MEANING: %\\3\n  :END:\n** Yi Fu story\n   %^{story}\n** Meaning\n   %^{meaning}"
 	 :kill-buffer t
 	 :immediate-finish t)
-	("p" "Piper" entry
-	 (file+headline "~/org/wiki.org" "Piper Tips")
-	 "* MEMO %^{title}\n  :PROPERTIES:\n  :RECORD_TIME: %U\n  :END:\n  %?"
-	 :jump-to-captured t)
         ("c" "Chansons" entry
 	 (file+headline "~/org/wiki.org" "Liste de Chansons")
 	 "* MEMO %^{title}\n  :PROPERTIES:\n  :RECORD_TIME: %U\n  :LINK: %A\n  :END:\n  %?"
@@ -618,6 +616,7 @@ By default PERIOD-FUNC specifies the last day only.
 REPORT-MODE can be either SEPARATE or COMBINE.
 SUM-TYPE can be ALL or a regexp matching what would be summed.
 EXCLUDE-TYPE can be nil or a regexp matching what would not be summed."
+  (interactive)
   (with-account
    (save-excursion
      (goto-char (point-min))
@@ -853,13 +852,33 @@ or a custom specifier of time period."
     (durand-change-parameter :exclude-type et)))
 
 ;;;###autoload
-(defun durand-view-repot-mode ()
+(defun durand-view-report-mode ()
   "Change report-mode"
   (interactive)
   (durand-change-parameter :report-mode (cond ((string= (ivy-read "Mode: " '("separate" "combine"))
                                                         "separate")
                                                'separate)
                                               (t 'combine))))
+
+;;;###autoload
+(defvar durand-account-prev-position nil
+  "The previous position to go to.")
+
+;;;###autoload
+(defun durand-view-entry ()
+  "Make entry go to top or the previous position"
+  (interactive)
+  (let ((window-line (count-visible-lines (window-start) (point))))
+    (cond
+     ((and (= window-line (1+ scroll-margin))
+           durand-account-prev-position)
+      (recenter durand-account-prev-position))
+     ((= window-line (1+ scroll-margin))
+      (message "No previous position to go to")
+      (setf durand-account-prev-position window-line))
+     (t
+      (setf durand-account-prev-position window-line)
+      (recenter 0)))))
 
 ;; define a report mode for reporting
 
@@ -880,10 +899,12 @@ Press \\[durand-view-last-day] to view the last day;
 (define-key account-report-mode-map [?c] #'durand-view-last-custom)
 (define-key account-report-mode-map [?s] #'durand-view-include)
 (define-key account-report-mode-map [?e] #'durand-view-exclude)
-(define-key account-report-mode-map [?r] #'durand-view-repot-mode)
+(define-key account-report-mode-map [?r] #'durand-view-report-mode)
 (define-key account-report-mode-map [?j] #'durand-view-go-to-account-day)
 (define-key account-report-mode-map [?n] #'durand-view-go-to-next-day)
 (define-key account-report-mode-map [?p] #'durand-view-go-to-previous-day)
+(define-key account-report-mode-map [?v] #'durand-view-entry)
+(define-key account-report-mode-map [?x] #'durand-kill-buffer)
 
 ;;;###autoload
 (defun durand-view-go-to-next-day (&optional arg)
@@ -1790,6 +1811,25 @@ and whose `caddr' is a list of strings, the content of the note."
     (message "%s note%s found" (if (= 0 len) "No" (number-to-string len))
 	     (cond ((= len 0) "s") ((<= len 1) "") (t "s")))))
 
+;; incomplete yet...
+;;;###autoload
+(defun durand-draw-calendar-days (days-list)
+  "Draw days in calendar"
+  (calendar)
+  (read-only-mode -1)
+  (dolist (day days-list)
+    (let* ((time (decode-time day))
+           (day (nth 3 time))
+           (month (nth 4 time))
+           (year (nth 5 time)))
+      (calendar-goto-date (list month day year))
+      (add-text-properties (if (looking-back "\\s-" (- (point) 2))
+                               (point)
+                             (- (point) 1))
+                           (+ (point) 1)
+                           ('face '(:foreground "red")))))
+  (read-only-mode 1))
+
 ;;;###autoload
 (defun durand-draw-days (days-list)
   "Draw the days in a pretty way.
@@ -2426,7 +2466,7 @@ If ARG is (64), then execute `(durand-update-article t)'."
   (cond
    ((or (null arg) (equal arg '(16)))
     (let* ((route_du_fichier "~/org/notes.org")
-           (tag (if (null arg) "a_voir" "math-a_voir"))
+           (tag (if (null arg) "a_voir-ARCHIVE" "math-a_voir-ARCHIVE"))
            (nom_du_tampon "notes.org")
            (nom_du_tampon_actuel (buffer-name))
            (déjà_ouvert (get-buffer nom_du_tampon))
@@ -2471,6 +2511,77 @@ If MATH is non-nil, then the range is articles taged MATH but not A_VOIR, instea
          (nom_du_tampon_actuel (buffer-name))
          (déjà_ouvert (get-buffer nom_du_tampon))
          (tag (if math "math-a_voir" "a_voir"))
+         (inhibit-message t) cands)
+    (find-file route_du_fichier)
+    (switch-to-buffer nom_du_tampon_actuel)
+    (with-current-buffer nom_du_tampon
+      (setf cands (org-map-entries
+                   (lambda () (let ((pos (point))) (append (durand-org-link-info) (list pos))))
+                   tag))
+      (setf cands (mapcar (lambda (x)
+                            (cons (durand-org-filter-dates (car x)) (cdr x)))
+                          cands))
+      (setf cands (reverse cands))
+      (unwind-protect
+          (let* ((choix (ivy-read "Chois un lien à mettre à jour: " cands
+                                  :require-match t))
+                 (item (assoc* choix cands :test #'equal)))
+            (goto-char (caddr item))
+            (org-update-link nil t))
+        (when (and (not déjà_ouvert) (get-buffer nom_du_tampon))
+          (save-buffer)
+          (kill-buffer nom_du_tampon))))))
+
+;;;###autoload
+(defun org-open-weblink (&optional arg)
+  "Open all weblink, that is, entries in \"notes.org\" with \"web_link\" tag.
+If ARG is (4), then execute `durand-update-weblink'."
+  (interactive "P")
+  (cond
+   ((null arg)
+    (let* ((route_du_fichier "~/org/notes.org")
+           (tag "web_link-special-personnes-ARCHIVE")
+           (nom_du_tampon "notes.org")
+           (nom_du_tampon_actuel (buffer-name))
+           (déjà_ouvert (get-buffer nom_du_tampon))
+           (inhibit-message t) cands)
+      (find-file route_du_fichier)
+      (switch-to-buffer nom_du_tampon_actuel)
+      (with-current-buffer nom_du_tampon
+        (setf cands (org-map-entries #'durand-org-link-info tag)))
+      (setf cands
+            (mapcar (lambda (x) (cons (durand-org-filter-dates (car x)) (cdr x))) cands))
+      (setf cands (reverse cands))
+      (unwind-protect
+          (let ((liste-de-choix
+                 (let (temp)
+                   (let* ((sel (durand-choose-list cands nil "Chois un lien de web: ")))
+                     (mapc (lambda (x)
+                             (setf temp (append temp
+                                                (durand-choose-list
+                                                 (mapcar (lambda (x) (cons x '("1"))) (assoc-default x cands))
+                                                 t "Chois un lien: "))))
+                           sel)
+                     temp))))
+            (mapc #'durand-org-open-link liste-de-choix))
+        (when (and (not déjà_ouvert) (get-buffer nom_du_tampon))
+          (kill-buffer nom_du_tampon))
+        (delete-other-windows))))
+   ((equal arg '(4))
+    (durand-update-weblink))
+   (t
+    (message "This ARG is not supported: %s" arg))))
+
+;;;###autoload
+(defun durand-update-weblink ()
+  "Update the link to a weblink;
+the link comes from the most recently stored link, so choose carefully the target to update."
+  (interactive)
+  (let* ((route_du_fichier "~/org/notes.org")
+         (nom_du_tampon "notes.org")
+         (nom_du_tampon_actuel (buffer-name))
+         (déjà_ouvert (get-buffer nom_du_tampon))
+         (tag "web_link-special-personnes-ARCHIVE")
          (inhibit-message t) cands)
     (find-file route_du_fichier)
     (switch-to-buffer nom_du_tampon_actuel)
@@ -2568,7 +2679,8 @@ If MATH is non-nil, then the range is articles taged MATH but not A_VOIR, instea
 (define-key org-account-prefix-map [?q] 'org-clear-buffers)
 (define-key org-account-prefix-map [tab] 'durand-forward-link)
 (define-key org-account-prefix-map [S-tab] 'find-previous-link-in-buffer)
-(define-key org-account-prefix-map [?v] 'durand-org-view-notes)
+(define-key org-account-prefix-map [?v] #'durand-org-view-notes)
+(define-key org-account-prefix-map [?a] #'durand-show-account-report)
 
 ;;;###autoload
 (defun org-clear-buffers ()
