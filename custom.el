@@ -290,16 +290,24 @@ If ARG is non-nil, then don't delete other windows"
 			 (- (point) n -1) (- (point) n -2)))))
 
 ;;;###autoload
-(defun transpose-chars-back-2 ()
+(defun transpose-chars-back-2 (&optional arg)
   "Transpose back 2 chars"
-  (interactive)
-  (transpose-chars-back-N 2))
+  (interactive "p")
+  (let ((num (if (or (null arg)
+                     (= arg 1))
+                 2
+               arg)))
+    (transpose-chars-back-N num)))
 
 ;;;###autoload
-(defun transpose-chars-back-3 ()
-  "Go back two characters and transpose charcaters"
-  (interactive)
-  (transpose-chars-back-N 3))
+(defun transpose-chars-back-3 (&optional arg)
+  "Transpose back 3 chars"
+  (interactive "p")
+  (let ((num (if (or (null arg)
+                     (= arg 1))
+                 3
+               arg)))
+    (transpose-chars-back-N num)))
 
 ;;;###autoload
 (defun transpose-chars-back-4 ()

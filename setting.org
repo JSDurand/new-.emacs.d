@@ -148,7 +148,7 @@
 #+BEGIN_SRC emacs-lisp
   ;;;(set-face-attribute 'default (selected-frame) :height 120)
   ;;;(set-face-attribute 'mode-line nil :height 200)
-  (set-default-font "DejaVu Sans Mono for Powerline 20")
+  (set-frame-font "DejaVu Sans Mono for Powerline 20")
   (defun my-minibuffer-setup ()
     (let ((message-log-max nil)
           (inhibit-message t))
@@ -414,18 +414,6 @@
   (ignore-errors (define-key company-active-map (kbd "<f1>") #'durand/company-show-doc-buffer))
 #+END_SRC
 
-** intero mode
-
-   This seems to be a quite good package for haskell.
-   But unfortunately I cannot install intero for some reason.
-   
-   #+begin_src emacs-lisp
-     ;; (use-package intero
-     ;;   :ensure t
-     ;;   :config
-     ;;   (add-hook 'haskell-mode-hook 'intero-mode))
-   #+end_src
-
 ** tex commands
    I might consider constructing the A.S.T. of a mathematical equation, and manipulate it later.
    I think this is not much harder than an expression calculator implementation I have done in Haskell before.
@@ -505,10 +493,11 @@
        :ensure t
        :defer 1
        :config
-       (setq ivy-re-builders-alist
-             '((swiper . ivy--regex-ignore-order)
-               (swiper-multi . ivy--regex-ignore-order)
-               (t . ivy--regex-fuzzy)))
+       (when (boundp 'ivy-re-builders-alist)
+         (setq ivy-re-builders-alist
+               '((swiper . ivy--regex-ignore-order)
+                 (swiper-multi . ivy--regex-ignore-order)
+                 (t . ivy--regex-fuzzy))))
        (setq ivy-wrap t)
        (ivy-set-actions
         'ivy-switch-buffer
@@ -566,7 +555,8 @@
 
      ;; ivy-re for swiper-isearch
 
-     (add-to-list 'ivy-re-builders-alist (cons 'swiper-isearch 'ivy--regex-ignore-order))
+     (when (boundp 'ivy-re-builders-alist)
+       (add-to-list 'ivy-re-builders-alist (cons 'swiper-isearch 'ivy--regex-ignore-order)))
 
      ;;;###autoload
      (defun durand-ivy-format-function-arrow (cands)
@@ -884,6 +874,15 @@
                                                                "| Narrow "))
                                                           ""))))
 
+     ;;;###autoload
+     (defun durand-misc-info ()
+       (propertize-mode-name (let ((misc-string (format-mode-line mode-line-misc-info)))
+                               (concat (string-trim
+                                        (cond ((string= misc-string " ") "")
+                                              (t (format-mode-line `("|" ,mode-line-misc-info)))))
+                                       (cond ((string= misc-string " ") "")
+                                             (t " "))))))
+
      (setq-default mode-line-format
                    '("%e"
                      (:eval (unless
@@ -907,7 +906,7 @@
                      (:eval (durand-mode-name))
                      ;; Only major mode
                      ;; "%n"
-                     mode-line-misc-info
+                     (:eval (durand-misc-info))
                      mode-line-end-spaces))
      ;; mode-line-modes -- I don't want all those minor modes information
      ;; " %I "
@@ -1099,6 +1098,7 @@
        :defer 15
        :pin manual ;; manually update
        :config
+       (require 'pdf-tools)
        (setenv "PKG_CONFIG_PATH" "/usr/local/Cellar/zlib/1.2.8/lib/pkgconfig:/usr/local/lib/pkgconfig:/opt/X11/lib/pkgconfig")
        (custom-set-variables
         '(pdf-tools-handle-upgrades nil))    ; Use brew upgrade pdf-tools instead.
@@ -1112,7 +1112,8 @@
        (define-key pdf-view-mode-map (kbd "s-s") 'isearch-forward)
        (define-key pdf-view-mode-map [?j] (lambda () (interactive) (pdf-view-scroll-up-or-next-page 1)))
        (define-key pdf-view-mode-map [?k] (lambda () (interactive) (pdf-view-scroll-down-or-previous-page 1)))
-       (define-key pdf-annot-minor-mode-map [?\C-c ?\C-a ?h] 'durand-pdf-add-highlighs)
+       (when (boundp 'pdf-annot-minor-mode-map)
+         (define-key pdf-annot-minor-mode-map [?\C-c ?\C-a ?h] 'durand-pdf-add-highlighs))
 
        ;; Since the default pdf-links-read-link-action function does not work because of some
        ;; imagemagick errors, I decide to write my own version.
@@ -1167,20 +1168,6 @@
      ;;;###autoload
      (define-key pdf-view-mode-map [?\r] 'durand-view-pdf-little-help-function)
    #+END_SRC
-
-** keychord
-   Enfin j'ai décidé d'utiliser ce paquet!
-   
-   #+begin_src emacs-lisp
-     ;; (use-package key-chord
-     ;;   :ensure t
-     ;;   :load-path "/Users/durand/.emacs.d/elpa/keychord/keychord.el"
-     ;;   :config
-     ;;   (key-chord-mode -1)
-     ;;   (key-chord-define-global ",;" 'general-hydra/body)
-     ;;   (setf key-chord-two-keys-delay 0.1)
-     ;;   (setf key-chord-one-key-delay 0.11))
-   #+end_src
 
 ** my hydras
    #+BEGIN_SRC emacs-lisp
@@ -1288,12 +1275,13 @@
     the trouble of setting up mu4e.
 
     #+BEGIN_SRC emacs-lisp
-      (require 'org-mu4e)
+      (ignore-errors
+        (require 'org-mu4e)
 
-      (setq org-mu4e-link-query-in-headers-mode nil)
+        (setq org-mu4e-link-query-in-headers-mode nil)
 
-      (org-link-set-parameters "mu4e" :follow #'org-mu4e-open
-                               :store #'org-mu4e-store-link)
+        (org-link-set-parameters "mu4e" :follow #'org-mu4e-open
+                                 :store #'org-mu4e-store-link))
     #+END_SRC
 *** org-pdfview
     #+BEGIN_SRC emacs-lisp
@@ -1462,7 +1450,7 @@
         nil nil
         (insert res)))
    #+END_SRC
-** geenral
+** general
    This makes defininig key-bindings easier.
    
    But right now I do not need it.
@@ -1555,7 +1543,7 @@
        :ensure t)
    #+end_src
 ** evil
-   I think I shall *evil-mode* a try again.
+   I think I shall give *evil-mode* another try.
 
    #+begin_src emacs-lisp
      (add-to-list 'load-path (expand-file-name "evil" user-emacs-directory))
@@ -1591,6 +1579,7 @@
      (add-to-list 'evil-emacs-state-modes 'durand-greek-search-mode)
      (add-to-list 'evil-emacs-state-modes 'account-report-mode)
      (add-to-list 'evil-emacs-state-modes 'elfeed-search-mode)
+     (add-to-list 'evil-emacs-state-modes 'elfeed-show-mode)
      (setf evil-search-module 'evil-search)
 
      (setf evil-overriding-maps (delete '(grep-mode-map) evil-overriding-maps))
@@ -1663,7 +1652,7 @@
               (if current-prefix-arg
                   (make-process
                    :name "terminal"
-                   :command '("open" "-a" "terminal")
+                   :command `("open" "-a" "terminal" ,(file-relative-name default-directory))
                    :buffer nil)
                 (eshell)))
        [?x] 'exchange-point-and-mark
@@ -1697,6 +1686,8 @@
        "With ARG, ask for the number of minutes."
        (interactive "P")
        (cond
+        ((equal arg '(16))
+         (message (format "Temps restants: %f minutes" (/ (- (timer-until durand-stop-timer nil)) 60.0))))
         ((null durand-stop-timer)
          (setf durand-stop-timer
                (run-with-timer
@@ -1726,8 +1717,8 @@
        [?%] 'widen
        [?u] (lambda ()
               (interactive)
-              (if current-prefix-arg (org-store-link nil t)
-                (mu4e-update-mail-and-index nil)))
+              (org-store-link nil t))
+       [?v] durand-view-map
        [?é] 'split-window-below
        [?\"] 'split-window-right
        [?X] 'ace-swap-window
@@ -1739,8 +1730,8 @@
        [?J] 'bookmark-set
        [?r] 'durand-recentf-jump-headlong
        [?g] 'backward-or-up-sexp
-       [?h] 'forward-or-up-sexp
-       [?H] help-map
+       ;; [?h] 'forward-or-up-sexp
+       [?h] help-map
        [?s] 'durand-cap-sentence
        [?-] 'negative-argument
        [?p] evil-projectile-map
@@ -1767,6 +1758,17 @@
                        (and (null display-line-numbers)
                             'relative)))
        [?e] 'durand-wrap-region-with)
+
+     ;; v map
+     (defvar durand-view-map (let ((map (make-keymap)))
+                               (define-key map [?l] #'org-open-articles)
+                               (define-key map [?b] #'org-open-bookmarks)
+                               (define-key map [?y] #'org-open-youtube)
+                               (define-key map [?w] #'org-open-weblink)
+                               (define-key map [?n] #'org-open-novels)
+                               map)
+       "The map for space v. Generally the map for viewing things, like
+     articles, bookmarks, youtube links, or weblinks.")
 
      ;; $
      (define-prefix-command 'durand-evil-dollar-map)
@@ -1995,6 +1997,25 @@
 
      ;; (define-key ctl-x-map [?n] 'durand-narrow-dwim)
    #+end_src
+** popup
+
+   I install this package just to be able to install helm.
+
+   #+begin_src emacs-lisp
+     ;; (use-package popup
+     ;;   :ensure t)
+   #+end_src
+* helm
+  I have a feeling that helm deserves its own top-level heading
+
+  #+begin_src emacs-lisp
+    ;; (add-to-list 'load-path "/usr/local/share/emacs/site-lisp/helm")
+    ;; (require 'helm)
+    ;; (require 'helm-config)
+  #+end_src
+  
+  I need to read [[https://github.com/emacs-helm/helm/wiki/Developing][helm wiki page]] to learn more, if I would like to use helm.
+  Also this [[https://wikemacs.org/wiki/How_to_write_helm_extensions][emacs wiki article]] can be helpful.
 
 * archive
   :PROPERTIES:

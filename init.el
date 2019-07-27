@@ -62,7 +62,7 @@
  '(evil-search-module (quote evil-search))
  '(package-selected-packages
    (quote
-    (evil-ledger ledger-mode intero pdf-tools org-noter noccur evil-surround evil-mode all-the-icons-dired all-the-icons o-blog key-chord cyphejor mu4e-alert org-drill org-plus-contrib emmet-mode xref-js2 js2-refactor js2-mode cnfonts general define-word sx olivetti dash-functional org-super-agenda amx emms haskell-mode projectile counsel-projectile elfeed org-pdfview undo-tree command-log-mode ivy-hydra tablist esup ox-reveal htmlize slime lispy org-bullets pacmacs rainbow-mode magit dired-details company-flx counsel tex auctex yasnippet wrap-region company-math company paredit expand-region iy-go-to-char org org-mode use-package)))
+    (popup intero pdf-tools org-noter noccur evil-surround evil-mode all-the-icons-dired all-the-icons o-blog cyphejor mu4e-alert org-drill org-plus-contrib emmet-mode xref-js2 js2-refactor js2-mode cnfonts general define-word sx olivetti dash-functional org-super-agenda amx emms haskell-mode projectile counsel-projectile elfeed org-pdfview undo-tree command-log-mode ivy-hydra tablist esup ox-reveal htmlize slime lispy org-bullets pacmacs rainbow-mode magit dired-details company-flx counsel tex auctex yasnippet wrap-region company-math company paredit expand-region iy-go-to-char org org-mode use-package)))
  '(pdf-tools-handle-upgrades nil)
  '(send-mail-function (quote mailclient-send-it))
  '(wrap-region-global-mode t nil (wrap-region)))

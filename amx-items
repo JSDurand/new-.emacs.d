@@ -1,13 +1,13 @@
 
 ;; ----- amx-history -----
 (
- durand-show-search-greek
- durand-chercher-pdf
- align-regexp
  package-delete
- package-list-packages
+ durand-chercher-pdf
  musique
- evil-ledger-mode
+ eval-expression
+ align-regexp
+ package-list-packages
+ org-mode
 )
 
 ;; ----- amx-data -----
@@ -54,7 +54,7 @@
  (swiper-all . 27)
  (counsel-rg . 1)
  (tv/swiper-backward . 1)
- (package-delete . 15)
+ (package-delete . 20)
  (org-toggle-item . 1)
  (org-insert-item . 2)
  (org-account-go-to-day . 13)
@@ -142,7 +142,7 @@
  (dired . 1)
  (music . 22)
  (durand-music-mode . 4)
- (musique . 84)
+ (musique . 87)
  (durand-chercher-musique . 68)
  (durand-sign . 37)
  (ansi-term . 9)
@@ -150,14 +150,14 @@
  (shell . 2)
  (ptt . 7)
  (transpose-chars-back-N . 2)
- (durand-chercher-pdf . 106)
+ (durand-chercher-pdf . 110)
  (describe-font . 1)
  (getenv . 1)
  (counsel-faces . 1)
  (org-agenda-later . 1)
  (org-insert-structure-template . 1)
  (LaTeX-mode . 1)
- (eval-expression . 13)
+ (eval-expression . 16)
  (gnugo . 1)
  (pdf-view-mode . 1)
  (lisp-interaction-mode . 1)
@@ -238,7 +238,7 @@
  (durand-search-last-greek . 218)
  (intero-restart . 2)
  (durand-clear-overlays . 13)
- (durand-show-search-greek . 552)
+ (durand-show-search-greek . 766)
  (evil-ledger-align . 1)
  (flymake-mode . 2)
  (ledger-post-align-postings . 1)

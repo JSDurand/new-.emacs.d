@@ -1,3 +1,6 @@
+(require 'pdf-tools)
+
+
 ;;;###autoload
 (defun tex ()
   "Command to compile TeX
@@ -212,6 +215,7 @@ If ARG is non-nil, delete the buffer BN"
 
 (setq tex-heading-list '("heading"
                          "imp"
+                         "cep"
                          "thm"
                          "sec"
                          "secc"
@@ -375,6 +379,8 @@ If ARG is non-nil, delete the buffer BN"
 
 (setq abbrev-prefix-map (make-sparse-keymap))
 (define-key abbrev-prefix-map "a" (lambda () (interactive) (insert "\\alpha")))
+(define-key abbrev-prefix-map "$" (lambda () (interactive) (insert "\\(\\)") (backward-char 2)))
+(define-key abbrev-prefix-map "*" (lambda () (interactive) (insert "\\[\\]") (backward-char 2)))
 (define-key abbrev-prefix-map "-" (lambda () (interactive) (insert "\\setminus")))
 (define-key abbrev-prefix-map ")" (lambda () (interactive) (insert "\\supset")))
 (define-key abbrev-prefix-map "(" (lambda () (interactive) (insert "\\subset")))
@@ -390,6 +396,8 @@ If ARG is non-nil, delete the buffer BN"
 (define-key abbrev-prefix-map "=" (lambda () (interactive) (insert "\\equiv")))
 (define-key abbrev-prefix-map ">" (lambda () (interactive) (insert "\\geq")))
 (define-key abbrev-prefix-map "<" (lambda () (interactive) (insert "\\leq")))
+(define-key abbrev-prefix-map "v<" (lambda () (interactive) (insert "\\leftarrow")))
+(define-key abbrev-prefix-map "v>" (lambda () (interactive) (insert "\\rightarrow")))
 (define-key abbrev-prefix-map "vp" (lambda () (interactive) (insert "\\varpi")))
 (define-key abbrev-prefix-map "vf" (lambda () (interactive) (insert "\\varphi")))
 (define-key abbrev-prefix-map "ve" (lambda () (interactive) (insert "\\varepsilon")))
@@ -400,7 +408,7 @@ If ARG is non-nil, delete the buffer BN"
 (define-key abbrev-prefix-map "S" (lambda () (interactive) (insert "\\Sigma")))
 (define-key abbrev-prefix-map "P" (lambda () (interactive) (insert "\\Pi")))
 (define-key abbrev-prefix-map "X" (lambda () (interactive) (insert "\\Xi")))
-(define-key abbrev-prefix-map "L" (lambda () (interactive) (insert "\\lambda")))
+(define-key abbrev-prefix-map "L" (lambda () (interactive) (insert "\\Lambda")))
 (define-key abbrev-prefix-map "J" (lambda () (interactive) (insert "\\Theta")))
 (define-key abbrev-prefix-map "G" (lambda () (interactive) (insert "\\Gamma")))
 (define-key abbrev-prefix-map "D" (lambda () (interactive) (insert "\\Delta")))
@@ -575,11 +583,11 @@ If ARG is non-nil, delete the buffer BN"
                (insert (format "\\%s" name))
                (save-excursion
                  (goto-char (point-min))
-                 (setq temp (search-forward-regexp "^\\\\def" nil t))
+                 (setq temp (search-forward-regexp "^\\\\def\\Sw" nil t))
                  (when temp
                    (message "Macro inserted.")
                    (beginning-of-line)
-                   (while (re-search-forward "^\\\\def" nil t)
+                   (while (re-search-forward "^\\\\def\\Sw" nil t)
                      (re-search-forward "{" nil t)
                      (backward-char 1)
                      (forward-sexp))

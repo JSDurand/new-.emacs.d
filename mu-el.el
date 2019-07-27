@@ -24,12 +24,12 @@
 (setq elfeed-feeds
       '(;; ("http://nullprogram.com/feed/"
 	;;  program)
-	("http://planet.emacsen.org/atom.xml"
-	 emacs
-	 blog)
-	;; ("https://lukesmith.xyz/rss.xml"
-	;;  luke
+	;; ("http://planet.emacsen.org/atom.xml"
+	;;  emacs
 	;;  blog)
+	("https://lukesmith.xyz/rss.xml"
+	 luke
+	 blog)
 	("http://notrelated.libsyn.com/rss"
 	 luke
 	 relevant
@@ -69,6 +69,24 @@
 	("https://www.youtube.com/feeds/videos.xml?channel_id=UCcXhhVwCT6_WqjkEniejRJQ"
 	 wintergarten
 	 youtube)
+        ("https://www.youtube.com/feeds/videos.xml?channel_id=UCtR5okwgTMghi_uyWvbloEg"
+         lao_kao
+         youtube)
+        ("https://www.youtube.com/feeds/videos.xml?channel_id=UCI4xp8qHD1MDErkqxb1dPbA"
+         innerFrench
+         youtube)
+        ("https://www.youtube.com/feeds/videos.xml?channel_id=UCTx8xR4VZ46IAsp5yBgLMzw"
+         endClashRoyale
+         youtube)
+        ("https://www.youtube.com/feeds/videos.xml?channel_id=UC8TtAsZE51ekqffnNASo7DA"
+         dacon
+         youtube)
+        ("https://www.youtube.com/feeds/videos.xml?channel_id=UCMUnInmOkrWN4gof9KlhNmQ"
+         KaoetMuo
+         youtube)
+        ("https://www.youtube.com/feeds/videos.xml?channel_id=UCwYJs4-yKmaALkLFX1uHFsw"
+         drama
+         youtube)
 	;; ("https://www.youtube.com/feeds/videos.xml?channel_id=UCqripRcC8scod22F5NKvLcQ"
 	;;  julia
 	;;  youtube)
@@ -87,9 +105,6 @@
 	 monad-reader
 	 blog
 	 important)
-	;; ("http://feeds.feedburner.com/blogspot/gJZg"
-	;;  google-ai
-	;;  blog)
 	;; ("https://www.reddit.com/r/haskell/.rss"
 	;;  haskell
 	;;  reddit)
@@ -644,6 +659,7 @@ the query history stack."
     (message "déjà ouvert"))
    (t
     (mu4e)
+    (switch-to-buffer (other-buffer))
     (message "ouvert maintenant"))))
 
 ;;;###autoload

@@ -125,7 +125,7 @@ Leave point after open-quotation."
 
 ;;;(set-face-attribute 'default (selected-frame) :height 120)
 ;;;(set-face-attribute 'mode-line nil :height 200)
-(set-default-font "DejaVu Sans Mono for Powerline 20")
+(set-frame-font "DejaVu Sans Mono for Powerline 20")
 (defun my-minibuffer-setup ()
   (let ((message-log-max nil)
         (inhibit-message t))
@@ -416,10 +416,11 @@ With ARG, move by that many elements."
   :ensure t
   :defer 1
   :config
-  (setq ivy-re-builders-alist
-        '((swiper . ivy--regex-ignore-order)
-          (swiper-multi . ivy--regex-ignore-order)
-          (t . ivy--regex-fuzzy)))
+  (when (boundp 'ivy-re-builders-alist)
+    (setq ivy-re-builders-alist
+          '((swiper . ivy--regex-ignore-order)
+            (swiper-multi . ivy--regex-ignore-order)
+            (t . ivy--regex-fuzzy))))
   (setq ivy-wrap t)
   (ivy-set-actions
    'ivy-switch-buffer
@@ -428,6 +429,36 @@ With ARG, move by that many elements."
         (kill-buffer-if-possible x)
         (ivy--reset-state ivy-last))
       "kill"))))
+
+;; add evil integration with swiper-isearch
+
+;;;###autoload
+(defun swiper-isearch-action (x)
+  "Move to X for `swiper-isearch'."
+  (if (or (numberp x)
+          (and (> (length x) 0)
+               (setq x (get-text-property 0 'point x))))
+      (with-ivy-window
+        (goto-char x)
+        (isearch-range-invisible (line-beginning-position)
+                                 (line-end-position))
+        (unless (eq ivy-exit 'done)
+          (swiper--cleanup)
+          (swiper--delayed-add-overlays)
+          (swiper--add-cursor-overlay
+           (ivy-state-window ivy-last))))
+    (swiper--cleanup))
+  ;; integration with evil-mode's search
+  (let ((re (ivy--regex ivy-text)))
+    (when (bound-and-true-p evil-mode)
+      (when (eq evil-search-module 'isearch)
+        (setq isearch-string ivy-text))
+      (when (eq evil-search-module 'evil-search)
+        (add-to-history 'evil-ex-search-history re)
+        (setq evil-ex-search-pattern (list re t t))
+        (setq evil-ex-search-direction 'forward)
+        (when evil-ex-search-persistent-highlight
+          (evil-ex-search-activate-highlight evil-ex-search-pattern))))))
 
 ;; minibuffer color customisation
 (set-face-foreground 'minibuffer-prompt "goldenrod2")
@@ -445,6 +476,11 @@ With ARG, move by that many elements."
   (when (get-buffer buf)
     (kill-buffer buf)))
 
+;; ivy-re for swiper-isearch
+
+(when (boundp 'ivy-re-builders-alist)
+  (add-to-list 'ivy-re-builders-alist (cons 'swiper-isearch 'ivy--regex-ignore-order)))
+
 ;;;###autoload
 (defun durand-ivy-format-function-arrow (cands)
   "Transform CAND-PAIRS into a string for minibuffer using \"->\" instead of \">\"."
@@ -459,6 +495,19 @@ With ARG, move by that many elements."
    cands
    "\n"))
 (setq ivy-format-function 'durand-ivy-format-function-arrow)
+
+(setf ivy-format-functions-alist
+      '((counsel-compile-env . counsel-compile-env--format-hint)
+        (counsel-colors-web . counsel--colors-web-format-function)
+        (counsel-colors-emacs . counsel--colors-emacs-format-function)
+        (counsel-evil-registers . counsel--yank-pop-format-function)
+        (counsel-yank-pop . counsel--yank-pop-format-function)
+        (counsel-git-log . counsel--yank-pop-format-function)
+        (counsel-faces . counsel--faces-format-function)
+        (swiper-isearch . swiper-isearch-format-function)
+        (swiper-multi . swiper--all-format-function)
+        (t . durand-ivy-format-function-arrow)))
+
 
 ;;;###autoload
 (defun durand-ivy-format-function-generic (selected-fn other-fn cands separator)
@@ -728,6 +777,15 @@ R: seulement pour lire"))
                                                           "| Narrow "))
                                                      ""))))
 
+;;;###autoload
+(defun durand-misc-info ()
+  (propertize-mode-name (let ((misc-string (format-mode-line mode-line-misc-info)))
+                          (concat (string-trim
+                                   (cond ((string= misc-string " ") "")
+                                         (t (format-mode-line `("|" ,mode-line-misc-info)))))
+                                  (cond ((string= misc-string " ") "")
+                                        (t " "))))))
+
 (setq-default mode-line-format
               '("%e"
                 (:eval (unless
@@ -751,7 +809,7 @@ R: seulement pour lire"))
                 (:eval (durand-mode-name))
                 ;; Only major mode
                 ;; "%n"
-                mode-line-misc-info
+                (:eval (durand-misc-info))
                 mode-line-end-spaces))
 ;; mode-line-modes -- I don't want all those minor modes information
 ;; " %I "
@@ -908,6 +966,7 @@ total: %d"
   :defer 15
   :pin manual ;; manually update
   :config
+  (require 'pdf-tools)
   (setenv "PKG_CONFIG_PATH" "/usr/local/Cellar/zlib/1.2.8/lib/pkgconfig:/usr/local/lib/pkgconfig:/opt/X11/lib/pkgconfig")
   (custom-set-variables
    '(pdf-tools-handle-upgrades nil))    ; Use brew upgrade pdf-tools instead.
@@ -921,9 +980,8 @@ total: %d"
   (define-key pdf-view-mode-map (kbd "s-s") 'isearch-forward)
   (define-key pdf-view-mode-map [?j] (lambda () (interactive) (pdf-view-scroll-up-or-next-page 1)))
   (define-key pdf-view-mode-map [?k] (lambda () (interactive) (pdf-view-scroll-down-or-previous-page 1)))
-  (define-key pdf-view-mode-map [?\r] 'durand-view-pdf-little-help-function)
-
-  (define-key pdf-annot-minor-mode-map [?\C-c ?\C-a ?h] 'durand-pdf-add-highlighs)
+  (when (boundp 'pdf-annot-minor-mode-map)
+    (define-key pdf-annot-minor-mode-map [?\C-c ?\C-a ?h] 'durand-pdf-add-highlighs))
 
   ;; Since the default pdf-links-read-link-action function does not work because of some
   ;; imagemagick errors, I decide to write my own version.
@@ -974,6 +1032,9 @@ As a reminder, this is defined in setting.org, pdf-tools section."
   (interactive)
   (pdf-view-enlarge 1.56)
   (image-forward-hscroll 34))
+
+;;;###autoload
+(define-key pdf-view-mode-map [?\r] 'durand-view-pdf-little-help-function)
 
 ;; (use-package key-chord
 ;;   :ensure t
@@ -1073,12 +1134,13 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
   (define-key undo-tree-visualizer-mode-map (kbd ")") 'undo-tree-visualize-redo-to-x)
   (setf undo-tree-enable-undo-in-region nil))
 
-(require 'org-mu4e)
+(ignore-errors
+  (require 'org-mu4e)
 
-(setq org-mu4e-link-query-in-headers-mode nil)
+  (setq org-mu4e-link-query-in-headers-mode nil)
 
-(org-link-set-parameters "mu4e" :follow #'org-mu4e-open
-                         :store #'org-mu4e-store-link)
+  (org-link-set-parameters "mu4e" :follow #'org-mu4e-open
+                           :store #'org-mu4e-store-link))
 
 (use-package org-pdfview
   :ensure t
@@ -1320,6 +1382,9 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
 (setf evil-cross-lines t)
 (setf evil-emacs-state-modes (delq 'pdf-view-mode evil-emacs-state-modes))
 (add-to-list 'evil-emacs-state-modes 'durand-greek-search-mode)
+(add-to-list 'evil-emacs-state-modes 'account-report-mode)
+(add-to-list 'evil-emacs-state-modes 'elfeed-search-mode)
+(add-to-list 'evil-emacs-state-modes 'elfeed-show-mode)
 (setf evil-search-module 'evil-search)
 
 (setf evil-overriding-maps (delete '(grep-mode-map) evil-overriding-maps))
@@ -1392,7 +1457,7 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
          (if current-prefix-arg
              (make-process
               :name "terminal"
-              :command '("open" "-a" "terminal")
+              :command `("open" "-a" "terminal" ,(file-relative-name default-directory))
               :buffer nil)
            (eshell)))
   [?x] 'exchange-point-and-mark
@@ -1426,6 +1491,8 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
   "With ARG, ask for the number of minutes."
   (interactive "P")
   (cond
+   ((equal arg '(16))
+    (message (format "Temps restants: %f minutes" (/ (- (timer-until durand-stop-timer nil)) 60.0))))
    ((null durand-stop-timer)
     (setf durand-stop-timer
           (run-with-timer
@@ -1468,8 +1535,8 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
   [?J] 'bookmark-set
   [?r] 'durand-recentf-jump-headlong
   [?g] 'backward-or-up-sexp
-  [?h] 'forward-or-up-sexp
-  [?H] help-map
+  ;; [?h] 'forward-or-up-sexp
+  [?h] help-map
   [?s] 'durand-cap-sentence
   [?-] 'negative-argument
   [?p] evil-projectile-map
@@ -1576,6 +1643,7 @@ If `咕嘰' is non-nil, then convert the result to a string of the two character
   ;; [?Z] 'upcase-region-or-word
   [?z] durand-evil-dollar-map
   (kbd "C-SPC") 'set-mark-command
+  ;; [?=] 'swiper-isearch
   [?=] 'evil-ex-search-forward
   [?/] 'counsel-grep-or-swiper
   [?<] 'er/expand-region
@@ -1712,22 +1780,6 @@ Otherwise execute `narrow-to-defun'."
 
 ;; (define-key ctl-x-map [?n] 'durand-narrow-dwim)
 
-(use-package ledger-mode
-  :ensure t
-  :init
-  (setf ledger-clear-whole-transactions 1
-        ledger-complete-in-steps t)
-  :config
-  (add-to-list 'evil-emacs-state-modes 'ledger-report-mode))
-
-(use-package evil-ledger
-  :ensure t
-  :after ledger-mode
-  :config
-  (evil-define-key* 'visual evil-ledger-mode-map [?S] #'evil-ledger-sort)
-  (add-hook 'ledger-mode-hook #'evil-ledger-mode)
-  (add-hook 'ledger-mode-hook (lambda () (setq-local pcomplete-termination-string ""))))
-
 ;; (ivy-read "HI: " '("ffa" "ffb" "ffba" "ffaa")
 ;; 	  :unwind (lambda () (setq durand-changed nil)))
 
@@ -1777,6 +1829,33 @@ Otherwise execute `narrow-to-defun'."
 ;;        (nth (mod (- len ind off-set arg) len) col)
 ;;        new-li))))
 
+;; The following works.
+
+;;;###autoload
+(cl-defun durand-cycle-ivy-collection (&optional (arg 1))
+  (assert (numberp arg))
+  (let* ((collection (ivy-state-collection ivy-last))
+         (len (length collection))
+         (new-arg (mod arg len)))
+    (setf (ivy-state-collection ivy-last) (append (nthcdr new-arg collection)
+                                                  (subseq collection 0 new-arg))))
+  (ivy--reset-state ivy-last))
+
+(defun durand-ivy-cycle-next-line (arg)
+  (interactive "p")
+  (durand-cycle-ivy-collection arg))
+
+(defun durand-ivy-cycle-previous-line (arg)
+  (interactive "p")
+  (durand-cycle-ivy-collection (- arg)))
+
+
+;;;###autoload
+(define-prefix-command 'durand-ivy-cycle-map)
+
+(define-key durand-ivy-cycle-map (kbd "<down>") 'durand-ivy-cycle-next-line)
+(define-key durand-ivy-cycle-map (kbd "<up>") 'durand-ivy-cycle-previous-line)
+
 ;; (require 'midnight)
 ;; (add-to-list 'clean-buffer-list-kill-never-regexps "elfeed")
 ;; (add-to-list 'clean-buffer-list-kill-never-regexps "mu4e")
@@ -1820,3 +1899,19 @@ Otherwise execute `narrow-to-defun'."
 ;;   :ensure t
 ;;   :init
 ;;   (setf frog-jump-buffer-max-buffers 20))
+
+;; (use-package ledger-mode
+;;   :ensure t
+;;   :init
+;;   (setf ledger-clear-whole-transactions 1
+;;         ledger-complete-in-steps t)
+;;   :config
+;;   (add-to-list 'evil-emacs-state-modes 'ledger-report-mode))
+
+;; (use-package evil-ledger
+;;   :ensure t
+;;   :after ledger-mode
+;;   :config
+;;   (evil-define-key* 'visual evil-ledger-mode-map [?S] #'evil-ledger-sort)
+;;   (add-hook 'ledger-mode-hook #'evil-ledger-mode)
+;;   (add-hook 'ledger-mode-hook (lambda () (setq-local pcomplete-termination-string ""))))
