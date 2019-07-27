@@ -1768,7 +1768,7 @@
                                (define-key map [?n] #'org-open-novels)
                                map)
        "The map for space v. Generally the map for viewing things, like
-     articles, bookmarks, youtube links, or weblinks.")
+     articles, bookmarks, youtube links, novels, or weblinks.")
 
      ;; $
      (define-prefix-command 'durand-evil-dollar-map)
